@@ -1,0 +1,357 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useCartStore } from '../store/cartStore';
+import { formatPrice } from '../utils/formatters';
+import { notifyNewOrder } from '../utils/telegramNotifications';
+import { ShoppingBag, Truck, CreditCard, CheckCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
+
+export default function CheckoutPage() {
+  const navigate = useNavigate();
+  const { items, getTotal, clearCart } = useCartStore();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    customerName: '',
+    customerPhone: '',
+    customerEmail: '',
+    customerAddress: '',
+    paymentMethod: 'cash' as 'cash' | 'card' | 'online',
+    notes: '',
+  });
+
+  const deliveryFee = 50;
+  const subtotal = getTotal();
+  const total = subtotal + deliveryFee;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (items.length === 0) {
+      toast.error('السلة فارغة');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const orderNumber = `ORD-${Date.now()}`;
+      const orderData = {
+        orderNumber,
+        ...formData,
+        items: items.map(item => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          productNameAr: item.product.nameAr,
+          productImage: item.product.images[0],
+          quantity: item.quantity,
+          price: item.product.discount
+            ? item.product.price * (1 - item.product.discount / 100)
+            : item.product.price,
+          subtotal: (item.product.discount
+            ? item.product.price * (1 - item.product.discount / 100)
+            : item.product.price) * item.quantity,
+        })),
+        subtotal,
+        deliveryFee,
+        discount: 0,
+        total,
+        status: 'pending',
+        paymentStatus: 'pending',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      const docRef = await addDoc(collection(db, 'orders'), orderData);
+      
+      // Send Telegram notification
+      await notifyNewOrder({ id: docRef.id, ...orderData } as any);
+
+      clearCart();
+      toast.success('تم إرسال طلبك بنجاح!');
+      navigate('/order-success', { state: { orderNumber } });
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast.error('حدث خطأ أثناء إنشاء الطلب');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-32 h-32 mx-auto mb-6 bg-surface-variant rounded-full flex items-center justify-center">
+            <ShoppingBag className="h-16 w-16 text-outline" />
+          </div>
+          <h2 className="md-typescale-headline-large text-on-surface mb-4">
+            السلة فارغة
+          </h2>
+          <p className="md-typescale-body-medium text-on-surface-variant mb-6">
+            أضف منتجات إلى سلتك قبل إتمام الطلب
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/products')}
+            className="md-filled-button"
+          >
+            تصفح المنتجات
+          </motion.button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="md-typescale-display-small text-on-background mb-2">
+            إتمام الطلب
+          </h1>
+          <p className="md-typescale-body-large text-on-surface-variant">
+            أكمل بياناتك لإتمام عملية الشراء
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Form Section */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-2"
+          >
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Customer Info */}
+              <div className="md-elevated-card p-6 space-y-4">
+                <h3 className="md-typescale-title-large text-on-surface mb-4 flex items-center gap-2">
+                  <span className="material-symbols-rounded text-primary">person</span>
+                  بيانات العميل
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="md-typescale-label-large text-on-surface block mb-2">
+                      الاسم الكامل *
+                    </label>
+                    <input
+                      type="text"
+                      name="customerName"
+                      value={formData.customerName}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+                      placeholder="أحمد محمد"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="md-typescale-label-large text-on-surface block mb-2">
+                      رقم الهاتف *
+                    </label>
+                    <input
+                      type="tel"
+                      name="customerPhone"
+                      value={formData.customerPhone}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+                      placeholder="01XXXXXXXXX"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="md-typescale-label-large text-on-surface block mb-2">
+                    البريد الإلكتروني (اختياري)
+                  </label>
+                  <input
+                    type="email"
+                    name="customerEmail"
+                    value={formData.customerEmail}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+                    placeholder="ahmed@example.com"
+                  />
+                </div>
+              </div>
+
+              {/* Shipping Info */}
+              <div className="md-elevated-card p-6 space-y-4">
+                <h3 className="md-typescale-title-large text-on-surface mb-4 flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-primary" />
+                  عنوان التوصيل
+                </h3>
+
+                <div>
+                  <label className="md-typescale-label-large text-on-surface block mb-2">
+                    العنوان بالتفصيل *
+                  </label>
+                  <textarea
+                    name="customerAddress"
+                    value={formData.customerAddress}
+                    onChange={handleChange}
+                    required
+                    rows={3}
+                    className="w-full px-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+                    placeholder="الشارع، المنطقة، المدينة، الرمز البريدي"
+                  />
+                </div>
+              </div>
+
+              {/* Payment Method */}
+              <div className="md-elevated-card p-6 space-y-4">
+                <h3 className="md-typescale-title-large text-on-surface mb-4 flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  طريقة الدفع
+                </h3>
+
+                <div className="space-y-3">
+                  {[
+                    { value: 'cash', label: 'الدفع عند الاستلام', icon: '💵' },
+                    { value: 'card', label: 'بطاقة ائتمان', icon: '💳' },
+                    { value: 'online', label: 'الدفع الإلكتروني', icon: '📱' },
+                  ].map((method) => (
+                    <label
+                      key={method.value}
+                      className={`flex items-center gap-3 p-4 rounded-m3 border-2 cursor-pointer transition-all ${
+                        formData.paymentMethod === method.value
+                          ? 'border-primary bg-primary-container'
+                          : 'border-outline hover:border-outline-variant'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={method.value}
+                        checked={formData.paymentMethod === method.value}
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                      <span className="text-2xl">{method.icon}</span>
+                      <span className="md-typescale-body-large text-on-surface">
+                        {method.label}
+                      </span>
+                      {formData.paymentMethod === method.value && (
+                        <CheckCircle className="h-5 w-5 text-primary mr-auto" />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="md-elevated-card p-6 space-y-4">
+                <h3 className="md-typescale-title-large text-on-surface mb-4">
+                  ملاحظات إضافية (اختياري)
+                </h3>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+                  placeholder="أي ملاحظات خاصة بالطلب..."
+                />
+              </div>
+            </form>
+          </motion.div>
+
+          {/* Order Summary */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="lg:col-span-1"
+          >
+            <div className="md-elevated-card p-6 sticky top-24 space-y-6">
+              <h3 className="md-typescale-title-large text-on-surface">
+                ملخص الطلب
+              </h3>
+
+              {/* Items */}
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {items.map((item) => (
+                  <div key={item.product.id} className="flex gap-3">
+                    <img
+                      src={item.product.images[0]}
+                      alt={item.product.nameAr}
+                      className="w-16 h-16 object-cover rounded-m3-sm"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="md-typescale-body-medium text-on-surface truncate">
+                        {item.product.nameAr}
+                      </p>
+                      <p className="md-typescale-body-small text-on-surface-variant">
+                        x{item.quantity}
+                      </p>
+                    </div>
+                    <p className="md-typescale-body-medium text-primary">
+                      {formatPrice(
+                        (item.product.discount
+                          ? item.product.price * (1 - item.product.discount / 100)
+                          : item.product.price) * item.quantity
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pricing */}
+              <div className="space-y-2 pt-4 border-t border-outline-variant">
+                <div className="flex justify-between md-typescale-body-medium text-on-surface">
+                  <span>المجموع الفرعي:</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
+                <div className="flex justify-between md-typescale-body-medium text-on-surface">
+                  <span>رسوم التوصيل:</span>
+                  <span>{formatPrice(deliveryFee)}</span>
+                </div>
+                <div className="flex justify-between md-typescale-title-large text-primary pt-2 border-t border-outline-variant">
+                  <span>الإجمالي:</span>
+                  <span>{formatPrice(total)}</span>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full md-filled-button py-4 shadow-m3-2 hover:shadow-m3-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin rounded-full h-5 w-5 border-2 border-primary-on border-t-transparent"></span>
+                    <span>جاري معالجة الطلب...</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    <span>تأكيد الطلب</span>
+                  </span>
+                )}
+              </motion.button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

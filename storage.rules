@@ -1,0 +1,47 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+             firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).size() > 0;
+    }
+    
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidSize() {
+      return request.resource.size < 5 * 1024 * 1024; // 5MB max
+    }
+    
+    // Product Images
+    match /products/{productId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && isValidSize();
+    }
+    
+    // Logo
+    match /settings/logo.{ext} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && isValidSize();
+    }
+    
+    // Hero Images
+    match /hero/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && isValidSize();
+    }
+    
+    // Category Images
+    match /categories/{categoryId}.{ext} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && isValidSize();
+    }
+  }
+}
+
