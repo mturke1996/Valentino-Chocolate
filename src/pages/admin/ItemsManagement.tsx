@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   collection,
   getDocs,
@@ -10,16 +10,16 @@ import {
   serverTimestamp,
   query,
   orderBy,
-} from 'firebase/firestore';
-import { db } from '../../firebase';
-import { Product, Category } from '../../types';
-import { formatPrice } from '../../utils/formatters';
-import { Plus, Edit, Trash2, Search, X } from 'lucide-react';
-import toast from 'react-hot-toast';
+} from "firebase/firestore";
+import { db } from "../../firebase";
+import { Product, Category } from "../../types";
+import { formatPrice } from "../../utils/formatters";
+import { Plus, Edit, Trash2, Search, X } from "lucide-react";
+import toast from "react-hot-toast";
 
 /**
  * صفحة إدارة المنتجات
- * 
+ *
  * مقاسات الصور الموصى بها للمنتجات:
  * - المقاس: 800x800 بكسل (مربع)
  * - الحجم: أقل من 300KB لكل صورة
@@ -31,22 +31,22 @@ export default function ItemsManagement() {
   const [products, setProducts] = useState<Product[]>([]);
   const [, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [formData, setFormData] = useState({
-    name: '',
-    nameAr: '',
-    description: '',
-    descriptionAr: '',
-    price: '',
-    category: '',
-    weight: '',
+    name: "",
+    nameAr: "",
+    description: "",
+    descriptionAr: "",
+    price: "",
+    category: "",
+    weight: "",
     images: [] as string[],
     featured: false,
     inStock: true,
-    discount: '',
+    discount: "",
   });
 
   useEffect(() => {
@@ -56,24 +56,27 @@ export default function ItemsManagement() {
   const fetchData = async () => {
     try {
       // Fetch Products
-      const productsQuery = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+      const productsQuery = query(
+        collection(db, "products"),
+        orderBy("createdAt", "desc")
+      );
       const productsSnapshot = await getDocs(productsQuery);
-      const productsData = productsSnapshot.docs.map(doc => ({
+      const productsData = productsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Product[];
       setProducts(productsData);
 
       // Fetch Categories
-      const categoriesSnapshot = await getDocs(collection(db, 'categories'));
-      const categoriesData = categoriesSnapshot.docs.map(doc => ({
+      const categoriesSnapshot = await getDocs(collection(db, "categories"));
+      const categoriesData = categoriesSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Category[];
       setCategories(categoriesData);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('حدث خطأ أثناء تحميل البيانات');
+      console.error("Error fetching data:", error);
+      toast.error("حدث خطأ أثناء تحميل البيانات");
     } finally {
       setLoading(false);
     }
@@ -83,7 +86,7 @@ export default function ItemsManagement() {
     e.preventDefault();
 
     if (formData.images.length === 0) {
-      toast.error('يرجى رفع صورة واحدة على الأقل');
+      toast.error("يرجى رفع صورة واحدة على الأقل");
       return;
     }
 
@@ -104,23 +107,23 @@ export default function ItemsManagement() {
       };
 
       if (editingProduct) {
-        await updateDoc(doc(db, 'products', editingProduct.id), productData);
-        toast.success('تم تحديث المنتج بنجاح');
+        await updateDoc(doc(db, "products", editingProduct.id), productData);
+        toast.success("تم تحديث المنتج بنجاح");
       } else {
-        await addDoc(collection(db, 'products'), {
+        await addDoc(collection(db, "products"), {
           ...productData,
           createdAt: serverTimestamp(),
           rating: 0,
           reviewCount: 0,
         });
-        toast.success('تم إضافة المنتج بنجاح');
+        toast.success("تم إضافة المنتج بنجاح");
       }
 
       resetForm();
       fetchData();
     } catch (error) {
-      console.error('Error saving product:', error);
-      toast.error('حدث خطأ أثناء حفظ المنتج');
+      console.error("Error saving product:", error);
+      toast.error("حدث خطأ أثناء حفظ المنتج");
     }
   };
 
@@ -133,48 +136,49 @@ export default function ItemsManagement() {
       descriptionAr: product.descriptionAr,
       price: product.price.toString(),
       category: product.category,
-      weight: product.weight || '',
+      weight: product.weight || "",
       images: product.images,
       featured: product.featured,
       inStock: product.inStock,
-      discount: product.discount ? product.discount.toString() : '',
+      discount: product.discount ? product.discount.toString() : "",
     });
     setShowModal(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
+    if (!confirm("هل أنت متأكد من حذف هذا المنتج؟")) return;
 
     try {
-      await deleteDoc(doc(db, 'products', id));
-      toast.success('تم حذف المنتج بنجاح');
+      await deleteDoc(doc(db, "products", id));
+      toast.success("تم حذف المنتج بنجاح");
       fetchData();
     } catch (error) {
-      toast.error('حدث خطأ أثناء حذف المنتج');
+      toast.error("حدث خطأ أثناء حذف المنتج");
     }
   };
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      nameAr: '',
-      description: '',
-      descriptionAr: '',
-      price: '',
-      category: '',
-      weight: '',
+      name: "",
+      nameAr: "",
+      description: "",
+      descriptionAr: "",
+      price: "",
+      category: "",
+      weight: "",
       images: [],
       featured: false,
       inStock: true,
-      discount: '',
+      discount: "",
     });
     setEditingProduct(null);
     setShowModal(false);
   };
 
-  const filteredProducts = products.filter(product =>
-    product.nameAr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProducts = products.filter(
+    (product) =>
+      product.nameAr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (loading) {
@@ -272,12 +276,14 @@ export default function ItemsManagement() {
                 <span className="md-typescale-title-medium text-primary">
                   {formatPrice(product.price)}
                 </span>
-                <span className={`px-2 py-1 rounded-m3-sm md-typescale-label-small ${
-                  product.inStock
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {product.inStock ? 'متوفر' : 'نفذ'}
+                <span
+                  className={`px-2 py-1 rounded-m3-sm md-typescale-label-small ${
+                    product.inStock
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {product.inStock ? "متوفر" : "نفذ"}
                 </span>
               </div>
             </div>
@@ -304,16 +310,21 @@ export default function ItemsManagement() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="md-typescale-headline-medium text-on-surface">
-                  {editingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}
+                  {editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
                 </h3>
-                <button onClick={resetForm} className="p-2 rounded-full hover:bg-surface-variant">
+                <button
+                  onClick={resetForm}
+                  className="p-2 rounded-full hover:bg-surface-variant"
+                >
                   <X className="h-6 w-6 text-on-surface" />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Rest of the form - continuing in next message due to length */}
-                <p className="text-center text-on-surface-variant">Form implementation continues...</p>
+                <p className="text-center text-on-surface-variant">
+                  Form implementation continues...
+                </p>
               </form>
             </motion.div>
           </motion.div>
@@ -322,4 +333,3 @@ export default function ItemsManagement() {
     </div>
   );
 }
-

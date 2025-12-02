@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   collection,
   query,
@@ -6,8 +6,8 @@ import {
   getDocs,
   QueryConstraint,
   DocumentData,
-} from 'firebase/firestore';
-import { db } from '../firebase';
+} from "firebase/firestore";
+import { db } from "../firebase";
 
 export function useFirestore<T = DocumentData>(
   collectionName: string,
@@ -27,7 +27,7 @@ export function useFirestore<T = DocumentData>(
           id: doc.id,
           ...doc.data(),
         })) as T[];
-        
+
         setData(documents);
         setLoading(false);
       },
@@ -60,4 +60,3 @@ export async function getFirestoreData<T = DocumentData>(
     return [];
   }
 }
-

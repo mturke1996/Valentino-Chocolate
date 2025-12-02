@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
-import { Product, Category } from '../types';
-import ProductCard from '../components/ProductCard';
-import { Grid, List, Search } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
+import { Product, Category } from "../types";
+import ProductCard from "../components/ProductCard";
+import { Grid, List, Search } from "lucide-react";
 
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -13,22 +13,22 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    searchParams.get('category') || 'all'
+    searchParams.get("category") || "all"
   );
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<string>('newest');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<string>("newest");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch Categories
         const categoriesQuery = query(
-          collection(db, 'categories'),
-          orderBy('order', 'asc')
+          collection(db, "categories"),
+          orderBy("order", "asc")
         );
         const categoriesSnapshot = await getDocs(categoriesQuery);
-        const categoriesData = categoriesSnapshot.docs.map(doc => ({
+        const categoriesData = categoriesSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Category[];
@@ -36,21 +36,21 @@ export default function ProductsPage() {
 
         // Fetch Products
         let productsQuery;
-        if (selectedCategory !== 'all') {
+        if (selectedCategory !== "all") {
           productsQuery = query(
-            collection(db, 'products'),
-            where('category', '==', selectedCategory),
-            orderBy('createdAt', 'desc')
+            collection(db, "products"),
+            where("category", "==", selectedCategory),
+            orderBy("createdAt", "desc")
           );
         } else {
           productsQuery = query(
-            collection(db, 'products'),
-            orderBy('createdAt', 'desc')
+            collection(db, "products"),
+            orderBy("createdAt", "desc")
           );
         }
 
         const productsSnapshot = await getDocs(productsQuery);
-        let productsData = productsSnapshot.docs.map(doc => ({
+        let productsData = productsSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Product[];
@@ -60,7 +60,7 @@ export default function ProductsPage() {
 
         setProducts(productsData);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
@@ -71,30 +71,33 @@ export default function ProductsPage() {
 
   const sortProducts = (products: Product[], sortBy: string) => {
     switch (sortBy) {
-      case 'price-low':
+      case "price-low":
         return [...products].sort((a, b) => a.price - b.price);
-      case 'price-high':
+      case "price-high":
         return [...products].sort((a, b) => b.price - a.price);
-      case 'name':
-        return [...products].sort((a, b) => a.nameAr.localeCompare(b.nameAr, 'ar'));
-      case 'rating':
+      case "name":
+        return [...products].sort((a, b) =>
+          a.nameAr.localeCompare(b.nameAr, "ar")
+        );
+      case "rating":
         return [...products].sort((a, b) => (b.rating || 0) - (a.rating || 0));
       default: // newest
         return products;
     }
   };
 
-  const filteredProducts = products.filter(product =>
-    product.nameAr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.descriptionAr.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProducts = products.filter(
+    (product) =>
+      product.nameAr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.descriptionAr.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
-    if (categoryId === 'all') {
-      searchParams.delete('category');
+    if (categoryId === "all") {
+      searchParams.delete("category");
     } else {
-      searchParams.set('category', categoryId);
+      searchParams.set("category", categoryId);
     }
     setSearchParams(searchParams);
   };
@@ -150,11 +153,11 @@ export default function ProductsPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setViewMode('grid')}
+                onClick={() => setViewMode("grid")}
                 className={`p-2 rounded-m3-sm transition-colors ripple ${
-                  viewMode === 'grid'
-                    ? 'bg-primary text-primary-on'
-                    : 'text-on-surface-variant'
+                  viewMode === "grid"
+                    ? "bg-primary text-primary-on"
+                    : "text-on-surface-variant"
                 }`}
               >
                 <Grid className="h-5 w-5" />
@@ -162,11 +165,11 @@ export default function ProductsPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setViewMode('list')}
+                onClick={() => setViewMode("list")}
                 className={`p-2 rounded-m3-sm transition-colors ripple ${
-                  viewMode === 'list'
-                    ? 'bg-primary text-primary-on'
-                    : 'text-on-surface-variant'
+                  viewMode === "list"
+                    ? "bg-primary text-primary-on"
+                    : "text-on-surface-variant"
                 }`}
               >
                 <List className="h-5 w-5" />
@@ -179,11 +182,11 @@ export default function ProductsPage() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => handleCategoryChange('all')}
+              onClick={() => handleCategoryChange("all")}
               className={`px-4 py-2 rounded-m3 md-typescale-label-large transition-all ripple ${
-                selectedCategory === 'all'
-                  ? 'bg-primary text-primary-on shadow-m3-1'
-                  : 'bg-surface-variant text-on-surface-variant hover:bg-outline-variant'
+                selectedCategory === "all"
+                  ? "bg-primary text-primary-on shadow-m3-1"
+                  : "bg-surface-variant text-on-surface-variant hover:bg-outline-variant"
               }`}
             >
               الكل
@@ -196,13 +199,15 @@ export default function ProductsPage() {
                 onClick={() => handleCategoryChange(category.id)}
                 className={`px-4 py-2 rounded-m3 md-typescale-label-large transition-all ripple ${
                   selectedCategory === category.id
-                    ? 'bg-primary text-primary-on shadow-m3-1'
-                    : 'bg-surface-variant text-on-surface-variant hover:bg-outline-variant'
+                    ? "bg-primary text-primary-on shadow-m3-1"
+                    : "bg-surface-variant text-on-surface-variant hover:bg-outline-variant"
                 }`}
               >
                 {category.nameAr}
                 {category.productsCount && (
-                  <span className="mr-1 opacity-70">({category.productsCount})</span>
+                  <span className="mr-1 opacity-70">
+                    ({category.productsCount})
+                  </span>
                 )}
               </motion.button>
             ))}
@@ -246,9 +251,9 @@ export default function ProductsPage() {
         ) : (
           <div
             className={
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-                : 'space-y-4'
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                : "space-y-4"
             }
           >
             {filteredProducts.map((product, index) => (
@@ -267,4 +272,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-

@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../firebase';
-import { useAuthStore } from '../../store/authStore';
+import { useState } from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase";
+import { useAuthStore } from "../../store/authStore";
 import {
   LayoutDashboard,
   Package,
@@ -15,8 +15,8 @@ import {
   X,
   MessageSquare,
   Star,
-} from 'lucide-react';
-import toast from 'react-hot-toast';
+} from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -28,21 +28,21 @@ export default function AdminDashboard() {
     try {
       await signOut(auth);
       logout();
-      toast.success('تم تسجيل الخروج بنجاح');
-      navigate('/');
+      toast.success("تم تسجيل الخروج بنجاح");
+      navigate("/");
     } catch (error) {
-      toast.error('حدث خطأ أثناء تسجيل الخروج');
+      toast.error("حدث خطأ أثناء تسجيل الخروج");
     }
   };
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'الرئيسية', path: '/admin' },
-    { icon: Package, label: 'المنتجات', path: '/admin/products' },
-    { icon: FolderOpen, label: 'الفئات', path: '/admin/categories' },
-    { icon: ShoppingBag, label: 'الطلبات', path: '/admin/orders' },
-    { icon: Star, label: 'التقييمات', path: '/admin/reviews' },
-    { icon: MessageSquare, label: 'الرسائل', path: '/admin/messages' },
-    { icon: Settings, label: 'الإعدادات', path: '/admin/settings' },
+    { icon: LayoutDashboard, label: "الرئيسية", path: "/admin" },
+    { icon: Package, label: "المنتجات", path: "/admin/products" },
+    { icon: FolderOpen, label: "الفئات", path: "/admin/categories" },
+    { icon: ShoppingBag, label: "الطلبات", path: "/admin/orders" },
+    { icon: Star, label: "التقييمات", path: "/admin/reviews" },
+    { icon: MessageSquare, label: "الرسائل", path: "/admin/messages" },
+    { icon: Settings, label: "الإعدادات", path: "/admin/settings" },
   ];
 
   return (
@@ -62,10 +62,10 @@ export default function AdminDashboard() {
 
             {/* Sidebar Panel */}
             <motion.aside
-              initial={{ x: '100%' }}
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25 }}
               className="fixed right-0 top-0 h-full w-72 bg-surface shadow-m3-5 z-50 lg:static lg:shadow-m3-2 flex flex-col"
             >
               {/* Header */}
@@ -103,15 +103,19 @@ export default function AdminDashboard() {
                     <Link
                       key={item.path}
                       to={item.path}
-                      onClick={() => window.innerWidth < 1024 && setSidebarOpen(false)}
+                      onClick={() =>
+                        window.innerWidth < 1024 && setSidebarOpen(false)
+                      }
                       className={`flex items-center gap-3 px-4 py-3 rounded-m3 transition-all ripple ${
                         isActive
-                          ? 'bg-secondary-container text-secondary-on-container shadow-m3-1'
-                          : 'text-on-surface hover:bg-surface-variant'
+                          ? "bg-secondary-container text-secondary-on-container shadow-m3-1"
+                          : "text-on-surface hover:bg-surface-variant"
                       }`}
                     >
                       <item.icon className="h-5 w-5" />
-                      <span className="md-typescale-label-large">{item.label}</span>
+                      <span className="md-typescale-label-large">
+                        {item.label}
+                      </span>
                     </Link>
                   );
                 })}
@@ -149,7 +153,8 @@ export default function AdminDashboard() {
                 <Menu className="h-6 w-6 text-on-surface" />
               </motion.button>
               <h1 className="md-typescale-headline-small text-on-surface">
-                {menuItems.find(item => item.path === location.pathname)?.label || 'لوحة التحكم'}
+                {menuItems.find((item) => item.path === location.pathname)
+                  ?.label || "لوحة التحكم"}
               </h1>
             </div>
 
@@ -161,12 +166,14 @@ export default function AdminDashboard() {
                   className="md-outlined-button"
                 >
                   <span className="flex items-center gap-2">
-                    <span className="material-symbols-rounded text-sm">open_in_new</span>
+                    <span className="material-symbols-rounded text-sm">
+                      open_in_new
+                    </span>
                     <span>عرض الموقع</span>
                   </span>
                 </motion.button>
               </Link>
-              
+
               <div className="flex items-center gap-3">
                 <div className="text-left">
                   <p className="md-typescale-label-large text-on-surface">
@@ -194,4 +201,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-

@@ -1,11 +1,16 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { DashboardStats, Order } from '../../types';
-import { formatPrice, formatDateTime, getOrderStatusText, getOrderStatusColor } from '../../utils/formatters';
-import { TrendingUp, Package, DollarSign, ShoppingBag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { collection, query, getDocs, orderBy, limit } from "firebase/firestore";
+import { db } from "../../firebase";
+import { DashboardStats, Order } from "../../types";
+import {
+  formatPrice,
+  formatDateTime,
+  getOrderStatusText,
+  getOrderStatusColor,
+} from "../../utils/formatters";
+import { TrendingUp, Package, DollarSign, ShoppingBag } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function DashboardHome() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -26,12 +31,12 @@ export default function DashboardHome() {
     const fetchStats = async () => {
       try {
         // Fetch Products Count
-        const productsSnapshot = await getDocs(collection(db, 'products'));
+        const productsSnapshot = await getDocs(collection(db, "products"));
         const totalProducts = productsSnapshot.size;
 
         // Fetch Orders
-        const ordersSnapshot = await getDocs(collection(db, 'orders'));
-        const orders = ordersSnapshot.docs.map(doc => ({
+        const ordersSnapshot = await getDocs(collection(db, "orders"));
+        const orders = ordersSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Order[];
@@ -39,28 +44,33 @@ export default function DashboardHome() {
         // Calculate stats
         const totalOrders = orders.length;
         const totalRevenue = orders
-          .filter(order => order.status === 'delivered')
+          .filter((order) => order.status === "delivered")
           .reduce((sum, order) => sum + order.total, 0);
 
-        const pendingOrders = orders.filter(order => order.status === 'pending').length;
+        const pendingOrders = orders.filter(
+          (order) => order.status === "pending"
+        ).length;
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todayOrders = orders.filter(order => {
+        const todayOrders = orders.filter((order) => {
           const orderDate = order.createdAt.toDate();
           return orderDate >= today;
         });
         const todayOrdersCount = todayOrders.length;
-        const todayRevenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
+        const todayRevenue = todayOrders.reduce(
+          (sum, order) => sum + order.total,
+          0
+        );
 
         // Fetch Recent Orders
         const recentOrdersQuery = query(
-          collection(db, 'orders'),
-          orderBy('createdAt', 'desc'),
+          collection(db, "orders"),
+          orderBy("createdAt", "desc"),
           limit(5)
         );
         const recentOrdersSnapshot = await getDocs(recentOrdersQuery);
-        const recentOrders = recentOrdersSnapshot.docs.map(doc => ({
+        const recentOrders = recentOrdersSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Order[];
@@ -78,7 +88,7 @@ export default function DashboardHome() {
           recentOrders,
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error("Error fetching stats:", error);
       } finally {
         setLoading(false);
       }
@@ -89,32 +99,32 @@ export default function DashboardHome() {
 
   const statCards = [
     {
-      label: 'إجمالي الطلبات',
+      label: "إجمالي الطلبات",
       value: stats.totalOrders,
       icon: ShoppingBag,
-      color: 'primary',
-      change: '+12%',
+      color: "primary",
+      change: "+12%",
     },
     {
-      label: 'إجمالي الإيرادات',
+      label: "إجمالي الإيرادات",
       value: formatPrice(stats.totalRevenue),
       icon: DollarSign,
-      color: 'secondary',
-      change: '+8%',
+      color: "secondary",
+      change: "+8%",
     },
     {
-      label: 'المنتجات',
+      label: "المنتجات",
       value: stats.totalProducts,
       icon: Package,
-      color: 'tertiary',
-      change: '+3',
+      color: "tertiary",
+      change: "+3",
     },
     {
-      label: 'الطلبات المعلقة',
+      label: "الطلبات المعلقة",
       value: stats.pendingOrders,
       icon: TrendingUp,
-      color: 'error',
-      change: '-2',
+      color: "error",
+      change: "-2",
     },
   ];
 
@@ -220,7 +230,10 @@ export default function DashboardHome() {
               </thead>
               <tbody>
                 {stats.recentOrders.map((order) => (
-                  <tr key={order.id} className="border-b border-outline-variant hover:bg-surface-variant">
+                  <tr
+                    key={order.id}
+                    className="border-b border-outline-variant hover:bg-surface-variant"
+                  >
                     <td className="py-4 md-typescale-body-medium text-primary">
                       #{order.orderNumber}
                     </td>
@@ -231,7 +244,11 @@ export default function DashboardHome() {
                       {formatPrice(order.total)}
                     </td>
                     <td className="py-4">
-                      <span className={`px-3 py-1 rounded-m3-sm md-typescale-label-small ${getOrderStatusColor(order.status)}`}>
+                      <span
+                        className={`px-3 py-1 rounded-m3-sm md-typescale-label-small ${getOrderStatusColor(
+                          order.status
+                        )}`}
+                      >
                         {getOrderStatusText(order.status)}
                       </span>
                     </td>
@@ -257,10 +274,30 @@ export default function DashboardHome() {
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'إضافة منتج', icon: 'add_circle', path: '/admin/products', color: 'primary' },
-            { label: 'إدارة الطلبات', icon: 'shopping_cart', path: '/admin/orders', color: 'secondary' },
-            { label: 'الإعدادات', icon: 'settings', path: '/admin/settings', color: 'tertiary' },
-            { label: 'التقارير', icon: 'analytics', path: '/admin/reports', color: 'primary' },
+            {
+              label: "إضافة منتج",
+              icon: "add_circle",
+              path: "/admin/products",
+              color: "primary",
+            },
+            {
+              label: "إدارة الطلبات",
+              icon: "shopping_cart",
+              path: "/admin/orders",
+              color: "secondary",
+            },
+            {
+              label: "الإعدادات",
+              icon: "settings",
+              path: "/admin/settings",
+              color: "tertiary",
+            },
+            {
+              label: "التقارير",
+              icon: "analytics",
+              path: "/admin/reports",
+              color: "primary",
+            },
           ].map((action, index) => (
             <Link key={index} to={action.path}>
               <motion.button
@@ -268,7 +305,9 @@ export default function DashboardHome() {
                 whileTap={{ scale: 0.95 }}
                 className="w-full md-filled-card p-4 flex items-center gap-3 hover:shadow-m3-2 transition-all ripple"
               >
-                <span className={`material-symbols-rounded text-${action.color}`}>
+                <span
+                  className={`material-symbols-rounded text-${action.color}`}
+                >
                   {action.icon}
                 </span>
                 <span className="md-typescale-label-large text-on-surface">
@@ -282,4 +321,3 @@ export default function DashboardHome() {
     </div>
   );
 }
-
