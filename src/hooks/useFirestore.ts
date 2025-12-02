@@ -2,9 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   collection,
   query,
-  where,
-  orderBy,
-  limit,
   onSnapshot,
   getDocs,
   QueryConstraint,

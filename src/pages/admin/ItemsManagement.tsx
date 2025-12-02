@@ -13,9 +13,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Product, Category } from '../../types';
-import { formatPrice, formatDateTime } from '../../utils/formatters';
-import { uploadMultipleToImgBB } from '../../utils/imgbbUpload';
-import { Plus, Edit, Trash2, Search, Image as ImageIcon, X } from 'lucide-react';
+import { formatPrice } from '../../utils/formatters';
+import { Plus, Edit, Trash2, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 /**
@@ -30,12 +29,11 @@ import toast from 'react-hot-toast';
 
 export default function ItemsManagement() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [uploadingImages, setUploadingImages] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -79,32 +77,6 @@ export default function ItemsManagement() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    setUploadingImages(true);
-    try {
-      const urls = await uploadMultipleToImgBB(files);
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...urls],
-      }));
-      toast.success(`تم رفع ${urls.length} صورة بنجاح`);
-    } catch (error) {
-      toast.error('حدث خطأ أثناء رفع الصور');
-    } finally {
-      setUploadingImages(false);
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

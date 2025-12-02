@@ -5,7 +5,7 @@ import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Product, Category } from '../types';
 import ProductCard from '../components/ProductCard';
-import { Filter, Grid, List, Search } from 'lucide-react';
+import { Grid, List, Search } from 'lucide-react';
 
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();

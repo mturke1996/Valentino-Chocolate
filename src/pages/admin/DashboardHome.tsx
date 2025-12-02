@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { collection, query, getDocs, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { DashboardStats, Order } from '../../types';
 import { formatPrice, formatDateTime, getOrderStatusText, getOrderStatusColor } from '../../utils/formatters';
-import { TrendingUp, Package, DollarSign, Users, ShoppingBag } from 'lucide-react';
+import { TrendingUp, Package, DollarSign, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function DashboardHome() {
