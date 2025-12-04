@@ -56,9 +56,16 @@ export interface Order {
   deliveryFee: number;
   discount: number;
   total: number;
-  status: 'pending' | 'confirmed' | 'preparing' | 'out-for-delivery' | 'delivered' | 'cancelled';
-  paymentMethod: 'cash' | 'card' | 'online';
-  paymentStatus: 'pending' | 'paid' | 'failed';
+  status:
+    | "pending"
+    | "confirmed"
+    | "preparing"
+    | "out-for-delivery"
+    | "delivered"
+    | "cancelled";
+  deliveryType: "pickup" | "delivery"; // استلام من المتجر أو توصيل
+  paymentMethod: "cash" | "card" | "online";
+  paymentStatus: "pending" | "paid" | "failed";
   notes?: string;
   createdAt: any;
   updatedAt: any;
@@ -94,6 +101,7 @@ export interface Review {
   images?: string[];
   verified: boolean;
   helpful: number;
+  reply?: string; // رد الموقع على التقييم
   createdAt: any;
 }
 
@@ -105,7 +113,7 @@ export interface Message {
   phone?: string;
   subject?: string;
   message: string;
-  status: 'new' | 'read' | 'replied';
+  status: "new" | "read" | "replied";
   reply?: string;
   createdAt: any;
   repliedAt?: any;
@@ -145,6 +153,27 @@ export interface SiteSettings {
   privacyPolicyAr?: string;
   termsAndConditions?: string;
   termsAndConditionsAr?: string;
+  // Telegram Bot Settings
+  telegramBotToken?: string;
+  telegramEnabled?: boolean;
+  telegramChats?: TelegramChat[];
+  updatedAt: any;
+}
+
+// Telegram Chat with Permissions
+export interface TelegramChat {
+  id: string;
+  chatId: string;
+  name?: string;
+  enabled: boolean;
+  permissions: {
+    orders: boolean; // استلام إشعارات الطلبات
+    orderStatus: boolean; // استلام تحديثات حالة الطلب
+    messages: boolean; // استلام الرسائل من التواصل معنا
+    reviews: boolean; // استلام التقييمات
+    contact: boolean; // استلام رسائل التواصل
+  };
+  createdAt: any;
   updatedAt: any;
 }
 
@@ -153,7 +182,7 @@ export interface Admin {
   id: string;
   email: string;
   displayName: string;
-  role: 'super-admin' | 'admin';
+  role: "super-admin" | "admin";
   createdAt: any;
 }
 
@@ -184,3 +213,34 @@ export interface ImageUploadResponse {
   message?: string;
 }
 
+// Job Application Types
+export interface JobApplication {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  position: string;
+  experience?: string;
+  cv?: string; // URL to CV file
+  coverLetter?: string;
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected';
+  notes?: string;
+  createdAt: any;
+}
+
+// Offer/Promotion Types
+export interface Offer {
+  id: string;
+  title: string;
+  titleAr: string;
+  description: string;
+  descriptionAr: string;
+  image?: string;
+  discount?: number; // Percentage
+  validFrom: any;
+  validUntil: any;
+  active: boolean;
+  products?: string[]; // Product IDs (if specific to products)
+  createdAt: any;
+  updatedAt: any;
+}

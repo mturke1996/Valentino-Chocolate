@@ -14,8 +14,10 @@ import {
 import { db } from "../../firebase";
 import { Product, Category } from "../../types";
 import { formatPrice } from "../../utils/formatters";
-import { Plus, Edit, Trash2, Search, X } from "lucide-react";
+import { Edit, Trash2, Search, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { uploadMultipleToImgBB } from "../../utils/imgbbUpload";
+import MaterialRipple from "../../components/MaterialRipple";
 
 /**
  * صفحة إدارة المنتجات
@@ -29,11 +31,12 @@ import toast from "react-hot-toast";
 
 export default function ItemsManagement() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -68,7 +71,11 @@ export default function ItemsManagement() {
       setProducts(productsData);
 
       // Fetch Categories
-      const categoriesSnapshot = await getDocs(collection(db, "categories"));
+      const categoriesQuery = query(
+        collection(db, "categories"),
+        orderBy("order", "asc")
+      );
+      const categoriesSnapshot = await getDocs(categoriesQuery);
       const categoriesData = categoriesSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -157,6 +164,41 @@ export default function ItemsManagement() {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    try {
+      const fileArray = Array.from(files);
+      const uploadedUrls = await uploadMultipleToImgBB(fileArray);
+
+      if (uploadedUrls.length > 0) {
+        setFormData({
+          ...formData,
+          images: [...formData.images, ...uploadedUrls],
+        });
+        toast.success(`تم رفع ${uploadedUrls.length} صورة بنجاح`);
+      } else {
+        toast.error("فشل رفع الصور");
+      }
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      toast.error("حدث خطأ أثناء رفع الصور");
+    } finally {
+      setUploadingImages(false);
+      // Reset input
+      e.target.value = "";
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData({
+      ...formData,
+      images: formData.images.filter((_, i) => i !== index),
+    });
+  };
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -184,7 +226,7 @@ export default function ItemsManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-outline-variant border-t-transparent"></div>
       </div>
     );
   }
@@ -201,15 +243,18 @@ export default function ItemsManagement() {
             {products.length} منتج
           </p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowModal(true)}
-          className="md-filled-button"
-        >
-          <Plus className="h-5 w-5 ml-2" />
-          إضافة منتج جديد
-        </motion.button>
+        <MaterialRipple>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-6 py-3 rounded-full transition-all bg-surface-variant text-on-surface shadow-sm"
+            style={{ borderRadius: "var(--md-sys-shape-corner-extra-large)" }}
+          >
+            <span className="material-symbols-rounded text-xl">add</span>
+            <span className="md-typescale-label-large font-medium">
+              إضافة منتج
+            </span>
+          </button>
+        </MaterialRipple>
       </div>
 
       {/* Search */}
@@ -220,7 +265,7 @@ export default function ItemsManagement() {
           placeholder="ابحث عن منتج..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pr-12 pl-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+          className="w-full pr-12 pl-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-outline-variant focus:border-2"
         />
       </div>
 
@@ -249,7 +294,7 @@ export default function ItemsManagement() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleEdit(product)}
-                  className="flex-1 bg-primary text-primary-on py-2 rounded-m3 md-typescale-label-medium ripple"
+                  className="flex-1 bg-surface-variant text-on-surface py-2 rounded-m3 md-typescale-label-medium ripple"
                 >
                   <Edit className="h-4 w-4 inline ml-1" />
                   تعديل
@@ -258,7 +303,7 @@ export default function ItemsManagement() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleDelete(product.id)}
-                  className="flex-1 bg-error text-error-on py-2 rounded-m3 md-typescale-label-medium ripple"
+                  className="flex-1 bg-surface-variant text-on-surface py-2 rounded-m3 md-typescale-label-medium ripple"
                 >
                   <Trash2 className="h-4 w-4 inline ml-1" />
                   حذف
@@ -273,13 +318,13 @@ export default function ItemsManagement() {
                 {product.descriptionAr}
               </p>
               <div className="flex items-center justify-between pt-2">
-                <span className="md-typescale-title-medium text-primary">
+                <span className="md-typescale-title-medium text-on-surface">
                   {formatPrice(product.price)}
                 </span>
                 <span
                   className={`px-2 py-1 rounded-m3-sm md-typescale-label-small ${
                     product.inStock
-                      ? "bg-green-100 text-green-800"
+                      ? "bg-primary-container text-primary"
                       : "bg-red-100 text-red-800"
                   }`}
                 >
@@ -321,10 +366,265 @@ export default function ItemsManagement() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Rest of the form - continuing in next message due to length */}
-                <p className="text-center text-on-surface-variant">
-                  Form implementation continues...
-                </p>
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-2 md-typescale-label-large text-on-surface">
+                      الاسم (عربي) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.nameAr}
+                      onChange={(e) =>
+                        setFormData({ ...formData, nameAr: e.target.value })
+                      }
+                      className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-outline-variant focus:border-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-2 md-typescale-label-large text-on-surface">
+                      الاسم (إنجليزي)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-outline-variant focus:border-2"
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block mb-2 md-typescale-label-large text-on-surface">
+                      الوصف (عربي)
+                    </label>
+                    <textarea
+                      value={formData.descriptionAr}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          descriptionAr: e.target.value,
+                        })
+                      }
+                      rows={3}
+                      className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-outline-variant focus:border-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-2 md-typescale-label-large text-on-surface">
+                      الوصف (إنجليزي)
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
+                      }
+                      rows={3}
+                      className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-outline-variant focus:border-2"
+                    />
+                  </div>
+                </div>
+
+                {/* Price & Category */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block mb-2 md-typescale-label-large text-on-surface">
+                      السعر (د.ل) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      step="0.01"
+                      min="0"
+                      value={formData.price}
+                      onChange={(e) =>
+                        setFormData({ ...formData, price: e.target.value })
+                      }
+                      className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-outline-variant focus:border-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-2 md-typescale-label-large text-on-surface">
+                      الفئة *
+                    </label>
+                    <select
+                      required
+                      value={formData.category}
+                      onChange={(e) =>
+                        setFormData({ ...formData, category: e.target.value })
+                      }
+                      className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-outline-variant focus:border-2"
+                    >
+                      <option value="">اختر الفئة</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.nameAr}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block mb-2 md-typescale-label-large text-on-surface">
+                      الوزن
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="مثال: 100g"
+                      value={formData.weight}
+                      onChange={(e) =>
+                        setFormData({ ...formData, weight: e.target.value })
+                      }
+                      className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-primary focus:border-2"
+                    />
+                  </div>
+                </div>
+
+                {/* Discount */}
+                <div>
+                  <label className="block mb-2 md-typescale-label-large text-on-surface">
+                    الخصم (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={formData.discount}
+                    onChange={(e) =>
+                      setFormData({ ...formData, discount: e.target.value })
+                    }
+                    className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-primary focus:border-2"
+                  />
+                </div>
+
+                {/* Images Upload */}
+                <div>
+                  <label className="block mb-2 md-typescale-label-large text-on-surface">
+                    الصور *
+                  </label>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <MaterialRipple>
+                        <label
+                          className="flex items-center gap-2 px-6 py-3 rounded-full cursor-pointer transition-all"
+                          style={{
+                            opacity: uploadingImages ? 0.7 : 1,
+                          }}
+                          className="bg-surface-variant text-on-surface"
+                        >
+                          <span className="material-symbols-rounded text-xl">
+                            upload
+                          </span>
+                          <span className="md-typescale-label-large font-medium">
+                            رفع صور
+                          </span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                            disabled={uploadingImages}
+                          />
+                        </label>
+                      </MaterialRipple>
+                      {uploadingImages && (
+                        <div className="flex items-center gap-2 text-on-surface-variant">
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-outline-variant border-t-transparent"></div>
+                          <span>جاري الرفع...</span>
+                        </div>
+                      )}
+                    </div>
+                    {formData.images.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {formData.images.map((img, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={img}
+                              alt={`صورة ${index + 1}`}
+                              className="w-full aspect-square object-cover rounded-2xl"
+                              style={{
+                                borderRadius:
+                                  "var(--md-sys-shape-corner-large)",
+                              }}
+                            />
+                            <MaterialRipple>
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="absolute top-2 right-2 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-surface-variant text-on-surface"
+                                style={{
+                                  borderRadius:
+                                    "var(--md-sys-shape-corner-extra-large)",
+                                }}
+                              >
+                                <span className="material-symbols-rounded text-lg">
+                                  close
+                                </span>
+                              </button>
+                            </MaterialRipple>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Checkboxes */}
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.featured}
+                      onChange={(e) =>
+                        setFormData({ ...formData, featured: e.target.checked })
+                      }
+                      className="w-5 h-5 rounded border-outline text-on-surface focus:ring-outline-variant"
+                    />
+                    <span className="md-typescale-label-large text-on-surface">
+                      منتج مميز
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.inStock}
+                      onChange={(e) =>
+                        setFormData({ ...formData, inStock: e.target.checked })
+                      }
+                      className="w-5 h-5 rounded border-outline text-on-surface focus:ring-outline-variant"
+                    />
+                    <span className="md-typescale-label-large text-on-surface">
+                      متوفر
+                    </span>
+                  </label>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex justify-end gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="md-outlined-button"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    type="submit"
+                    className="md-filled-button"
+                    disabled={uploadingImages}
+                  >
+                    {editingProduct ? "تحديث" : "إضافة"}
+                  </button>
+                </div>
               </form>
             </motion.div>
           </motion.div>

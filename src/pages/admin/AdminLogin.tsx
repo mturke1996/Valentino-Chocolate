@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../../firebase';
-import { useAuthStore } from '../../store/authStore';
-import { LogIn, Lock, Mail } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../../firebase";
+import { useAuthStore } from "../../store/authStore";
+import { LogIn, Lock, Mail } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { setUser, setIsAdmin } = useAuthStore();
@@ -20,27 +20,67 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // تسجيل الدخول
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
 
-      // Check if user is admin
-      const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-      
-      if (adminDoc.exists()) {
+      // التحقق من صلاحيات Admin
+      try {
+        const adminDoc = await getDoc(doc(db, "admins", user.uid));
+
+        if (adminDoc.exists()) {
+          // تحديث الحالة
+          setUser(user);
+          setIsAdmin(true);
+
+          // رسالة نجاح
+          toast.success("تم تسجيل الدخول بنجاح!", {
+            duration: 2000,
+          });
+
+          // الانتظار قليلاً ثم التوجيه
+          setTimeout(() => {
+            navigate("/admin", { replace: true });
+          }, 500);
+        } else {
+          // المستخدم ليس Admin
+          await auth.signOut();
+          setUser(null);
+          setIsAdmin(false);
+          toast.error(
+            `UID: ${user.uid} - ليس لديك صلاحيات Admin. يرجى إضافة المستخدم في Firestore collection 'admins'`,
+            {
+              duration: 6000,
+            }
+          );
+        }
+      } catch (adminError: any) {
+        console.error("Error checking admin:", adminError);
+        // حتى لو فشل التحقق، نسمح بتسجيل الدخول (سيتم التحقق في App.tsx)
         setUser(user);
-        setIsAdmin(true);
-        toast.success('تم تسجيل الدخول بنجاح');
-        navigate('/admin');
-      } else {
-        await auth.signOut();
-        toast.error('ليس لديك صلاحيات الوصول');
+        setIsAdmin(false);
+        toast.success("تم تسجيل الدخول، جاري التحقق من الصلاحيات...");
+        setTimeout(() => {
+          navigate("/admin", { replace: true });
+        }, 500);
       }
     } catch (error: any) {
-      console.error('Login error:', error);
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-        toast.error('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      console.error("Login error:", error);
+      if (
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/user-not-found"
+      ) {
+        toast.error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+      } else if (error.code === "auth/invalid-email") {
+        toast.error("البريد الإلكتروني غير صحيح");
+      } else if (error.code === "auth/too-many-requests") {
+        toast.error("تم تجاوز عدد المحاولات المسموح بها. يرجى المحاولة لاحقاً");
       } else {
-        toast.error('حدث خطأ أثناء تسجيل الدخول');
+        toast.error(`حدث خطأ: ${error.message || "خطأ غير معروف"}`);
       }
     } finally {
       setLoading(false);
@@ -59,10 +99,10 @@ export default function AdminLogin() {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200 }}
-            className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-m3 shadow-m3-3 mb-4"
+            transition={{ type: "spring", stiffness: 200 }}
+            className="inline-flex items-center justify-center w-20 h-20 bg-surface-variant rounded-m3 shadow-m3-3 mb-4"
           >
-            <span className="material-symbols-rounded text-primary-on text-4xl">
+            <span className="material-symbols-rounded text-on-surface text-4xl">
               admin_panel_settings
             </span>
           </motion.div>
@@ -94,7 +134,7 @@ export default function AdminLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full pr-12 pl-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+                className="w-full pr-12 pl-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-outline focus:border-2"
                 placeholder="admin@example.com"
               />
             </div>
@@ -112,7 +152,7 @@ export default function AdminLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full pr-12 pl-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+                className="w-full pr-12 pl-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-outline focus:border-2"
                 placeholder="••••••••"
               />
             </div>
@@ -124,16 +164,16 @@ export default function AdminLogin() {
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={loading}
-            className="w-full md-filled-button py-4 shadow-m3-2 hover:shadow-m3-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 bg-surface-variant text-on-surface rounded-m3 shadow-m3-2 hover:shadow-m3-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="animate-spin rounded-full h-5 w-5 border-2 border-primary-on border-t-transparent"></span>
+                <span className="animate-spin rounded-full h-5 w-5 border-2 border-on-surface border-t-transparent"></span>
                 <span>جاري تسجيل الدخول...</span>
               </span>
             ) : (
               <span className="flex items-center justify-center gap-2">
-                <LogIn className="h-5 w-5" />
+                <LogIn className="h-5 w-5 text-on-surface" />
                 <span>تسجيل الدخول</span>
               </span>
             )}
@@ -149,9 +189,11 @@ export default function AdminLogin() {
         >
           <a
             href="/"
-            className="md-typescale-body-medium text-primary hover:text-primary-container transition-colors inline-flex items-center gap-1"
+            className="md-typescale-body-medium text-on-surface-variant hover:text-on-surface transition-colors inline-flex items-center gap-1"
           >
-            <span className="material-symbols-rounded text-sm">arrow_forward</span>
+            <span className="material-symbols-rounded text-sm">
+              arrow_forward
+            </span>
             <span>العودة للصفحة الرئيسية</span>
           </a>
         </motion.div>
@@ -159,4 +201,3 @@ export default function AdminLogin() {
     </div>
   );
 }
-

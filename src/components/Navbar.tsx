@@ -1,19 +1,16 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Menu, X, User, LogOut, Search } from 'lucide-react';
-import { useCartStore } from '../store/cartStore';
-import { useAuthStore } from '../store/authStore';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import toast from 'react-hot-toast';
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingCart, Menu, X, User, LogOut, Search } from "lucide-react";
+import { useCartStore } from "../store/cartStore";
+import { useAuthStore } from "../store/authStore";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
+import toast from "react-hot-toast";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [siteName, setSiteName] = useState('فالنتينو للشوكولاتة');
   const location = useLocation();
   const itemCount = useCartStore((state) => state.getItemCount());
   const { user, isAdmin, logout } = useAuthStore();
@@ -23,41 +20,25 @@ export default function Navbar() {
       setIsScrolled(window.scrollY > 20);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const settingsDoc = await getDoc(doc(db, 'settings', 'general'));
-        if (settingsDoc.exists()) {
-          const data = settingsDoc.data();
-          setSiteName(data.siteNameAr || 'فالنتينو للشوكولاتة');
-        }
-      } catch (error) {
-        console.error('Error fetching settings:', error);
-      }
-    };
-
-    fetchSettings();
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
       logout();
-      toast.success('تم تسجيل الخروج بنجاح');
+      toast.success("تم تسجيل الخروج بنجاح");
     } catch (error) {
-      toast.error('حدث خطأ أثناء تسجيل الخروج');
+      toast.error("حدث خطأ أثناء تسجيل الخروج");
     }
   };
 
   const navLinks = [
-    { name: 'الرئيسية', path: '/' },
-    { name: 'المنتجات', path: '/products' },
-    { name: 'من نحن', path: '/about' },
-    { name: 'اتصل بنا', path: '/contact' },
+    { name: "الرئيسية", path: "/" },
+    { name: "المنتجات", path: "/products" },
+    { name: "من نحن", path: "/about" },
+    { name: "اتصل بنا", path: "/contact" },
   ];
 
   return (
@@ -68,28 +49,24 @@ export default function Navbar() {
         animate={{ y: 0 }}
         className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-m3-2'
-            : 'bg-white/80 backdrop-blur-sm'
+            ? "bg-white/95 backdrop-blur-md shadow-m3-2"
+            : "bg-white/80 backdrop-blur-sm"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo & Brand */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="h-12 w-12 bg-primary rounded-full flex items-center justify-center shadow-md"
-              >
-                <span className="text-2xl">🍫</span>
-              </motion.div>
-              <div className="flex flex-col">
-                <span className="md-typescale-title-large text-primary font-bold">
-                  {siteName}
-                </span>
-                <span className="md-typescale-body-small text-on-surface-variant">
-                  شوكولاتة فاخرة
-                </span>
-              </div>
+            {/* Logo */}
+            <Link to="/" className="flex items-center group">
+                <motion.img
+                  whileHover={{ scale: 1.05 }}
+                src="/LOGO TRANS@4x.png"
+                alt="Valentino Chocolate"
+                className="h-12 w-auto object-contain"
+                onError={(e) => {
+                  // Fallback to SVG if PNG fails
+                  (e.target as HTMLImageElement).src = "/LOGO SVG.svg";
+                }}
+              />
             </Link>
 
             {/* Desktop Navigation */}
@@ -100,8 +77,8 @@ export default function Navbar() {
                   to={link.path}
                   className={`px-4 py-2 rounded-m3 md-typescale-label-large transition-all ripple ${
                     location.pathname === link.path
-                      ? 'bg-secondary-container text-secondary-on-container'
-                      : 'text-on-surface hover:bg-surface-variant'
+                      ? "bg-secondary-container text-secondary-on-container"
+                      : "text-on-surface hover:bg-surface-variant"
                   }`}
                 >
                   {link.name}
@@ -202,7 +179,7 @@ export default function Navbar() {
           {isOpen && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               className="md:hidden bg-surface border-t border-outline-variant"
             >
@@ -214,8 +191,8 @@ export default function Navbar() {
                     onClick={() => setIsOpen(false)}
                     className={`block px-4 py-3 rounded-m3 md-typescale-label-large transition-all ripple ${
                       location.pathname === link.path
-                        ? 'bg-secondary-container text-secondary-on-container'
-                        : 'text-on-surface hover:bg-surface-variant'
+                        ? "bg-secondary-container text-secondary-on-container"
+                        : "text-on-surface hover:bg-surface-variant"
                     }`}
                   >
                     {link.name}
@@ -262,4 +239,3 @@ export default function Navbar() {
     </>
   );
 }
-

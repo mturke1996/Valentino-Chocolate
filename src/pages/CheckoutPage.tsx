@@ -1,32 +1,38 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
-import { useCartStore } from '../store/cartStore';
-import { formatPrice } from '../utils/formatters';
-import { notifyNewOrder } from '../utils/telegramNotifications';
-import { ShoppingBag, Truck, CreditCard, CheckCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
+import { useCartStore } from "../store/cartStore";
+import { formatPrice } from "../utils/formatters";
+import { notifyNewOrder } from "../utils/telegramNotifications";
+import { ShoppingBag, Truck, CreditCard, CheckCircle } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, getTotal, clearCart } = useCartStore();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    customerName: '',
-    customerPhone: '',
-    customerEmail: '',
-    customerAddress: '',
-    paymentMethod: 'cash' as 'cash' | 'card' | 'online',
-    notes: '',
+    customerName: "",
+    customerPhone: "",
+    customerEmail: "",
+    customerAddress: "",
+    deliveryType: "delivery" as "pickup" | "delivery",
+    paymentMethod: "cash" as "cash" | "card" | "online",
+    notes: "",
   });
 
-  const deliveryFee = 50;
+  // Delivery fee removed per request (show only subtotal/total)
+  const deliveryFee = 0;
   const subtotal = getTotal();
-  const total = subtotal + deliveryFee;
+  const total = subtotal; // delivery fee hidden/removed
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -35,9 +41,9 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (items.length === 0) {
-      toast.error('السلة فارغة');
+      toast.error("السلة فارغة");
       return;
     }
 
@@ -47,8 +53,17 @@ export default function CheckoutPage() {
       const orderNumber = `ORD-${Date.now()}`;
       const orderData = {
         orderNumber,
-        ...formData,
-        items: items.map(item => ({
+        customerName: formData.customerName,
+        customerPhone: formData.customerPhone,
+        customerEmail: formData.customerEmail || "",
+        customerAddress:
+          formData.deliveryType === "delivery"
+            ? formData.customerAddress
+            : "استلام من المتجر",
+        deliveryType: formData.deliveryType,
+        paymentMethod: formData.paymentMethod,
+        notes: formData.notes || "",
+        items: items.map((item) => ({
           productId: item.product.id,
           productName: item.product.name,
           productNameAr: item.product.nameAr,
@@ -57,31 +72,32 @@ export default function CheckoutPage() {
           price: item.product.discount
             ? item.product.price * (1 - item.product.discount / 100)
             : item.product.price,
-          subtotal: (item.product.discount
-            ? item.product.price * (1 - item.product.discount / 100)
-            : item.product.price) * item.quantity,
+          subtotal:
+            (item.product.discount
+              ? item.product.price * (1 - item.product.discount / 100)
+              : item.product.price) * item.quantity,
         })),
         subtotal,
         deliveryFee,
         discount: 0,
         total,
-        status: 'pending',
-        paymentStatus: 'pending',
+        status: "pending",
+        paymentStatus: "pending",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
 
-      const docRef = await addDoc(collection(db, 'orders'), orderData);
-      
+      const docRef = await addDoc(collection(db, "orders"), orderData);
+
       // Send Telegram notification
       await notifyNewOrder({ id: docRef.id, ...orderData } as any);
 
       clearCart();
-      toast.success('تم إرسال طلبك بنجاح!');
-      navigate('/order-success', { state: { orderNumber } });
+      toast.success("تم إرسال طلبك بنجاح!");
+      navigate("/order-success", { state: { orderNumber } });
     } catch (error) {
-      console.error('Error creating order:', error);
-      toast.error('حدث خطأ أثناء إنشاء الطلب');
+      console.error("Error creating order:", error);
+      toast.error("حدث خطأ أثناء إنشاء الطلب");
     } finally {
       setLoading(false);
     }
@@ -103,7 +119,7 @@ export default function CheckoutPage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/products')}
+            onClick={() => navigate("/products")}
             className="md-filled-button"
           >
             تصفح المنتجات
@@ -140,7 +156,9 @@ export default function CheckoutPage() {
               {/* Customer Info */}
               <div className="md-elevated-card p-6 space-y-4">
                 <h3 className="md-typescale-title-large text-on-surface mb-4 flex items-center gap-2">
-                  <span className="material-symbols-rounded text-primary">person</span>
+                  <span className="material-symbols-rounded text-primary">
+                    person
+                  </span>
                   بيانات العميل
                 </h3>
 
@@ -191,27 +209,87 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Shipping Info */}
+              {/* Delivery Type */}
               <div className="md-elevated-card p-6 space-y-4">
                 <h3 className="md-typescale-title-large text-on-surface mb-4 flex items-center gap-2">
                   <Truck className="h-5 w-5 text-primary" />
-                  عنوان التوصيل
+                  طريقة الاستلام
                 </h3>
 
-                <div>
-                  <label className="md-typescale-label-large text-on-surface block mb-2">
-                    العنوان بالتفصيل *
-                  </label>
-                  <textarea
-                    name="customerAddress"
-                    value={formData.customerAddress}
-                    onChange={handleChange}
-                    required
-                    rows={3}
-                    className="w-full px-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
-                    placeholder="الشارع، المنطقة، المدينة، الرمز البريدي"
-                  />
+                <div className="space-y-3">
+                  {[
+                    {
+                      value: "delivery",
+                      label: "توصيل إلى العنوان",
+                      icon: "🚚",
+                      desc: "رسوم التوصيل: 50 د.ل",
+                    },
+                    {
+                      value: "pickup",
+                      label: "استلام من المتجر",
+                      icon: "🏪",
+                      desc: "بدون رسوم توصيل",
+                    },
+                  ].map((method) => (
+                    <label
+                      key={method.value}
+                      className={`flex items-start gap-3 p-4 rounded-m3 border-2 cursor-pointer transition-all ${
+                        formData.deliveryType === method.value
+                          ? "border-primary bg-primary-container"
+                          : "border-outline hover:border-outline-variant"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="deliveryType"
+                        value={method.value}
+                        checked={formData.deliveryType === method.value}
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                      <span className="text-2xl">{method.icon}</span>
+                      <div className="flex-1">
+                        <span className="md-typescale-body-large text-on-surface block">
+                          {method.label}
+                        </span>
+                        <span className="md-typescale-body-small text-on-surface-variant">
+                          {method.desc}
+                        </span>
+                      </div>
+                      {formData.deliveryType === method.value && (
+                        <CheckCircle className="h-5 w-5 text-primary" />
+                      )}
+                    </label>
+                  ))}
                 </div>
+
+                {formData.deliveryType === "delivery" && (
+                  <div className="mt-4">
+                    <label className="md-typescale-label-large text-on-surface block mb-2">
+                      العنوان بالتفصيل *
+                    </label>
+                    <textarea
+                      name="customerAddress"
+                      value={formData.customerAddress}
+                      onChange={handleChange}
+                      required
+                      rows={3}
+                      className="w-full px-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+                      placeholder="الشارع، المنطقة، المدينة، الرمز البريدي"
+                    />
+                  </div>
+                )}
+
+                {formData.deliveryType === "pickup" && (
+                  <div className="mt-4 p-4 bg-surface-variant rounded-m3">
+                    <p className="md-typescale-body-medium text-on-surface-variant">
+                      📍 عنوان المتجر: نوفليين، طرابلس، ليبيا
+                    </p>
+                    <p className="md-typescale-body-small text-on-surface-variant mt-2">
+                      سيتم إشعارك عند جاهزية الطلب للاستلام
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Payment Method */}
@@ -223,16 +301,16 @@ export default function CheckoutPage() {
 
                 <div className="space-y-3">
                   {[
-                    { value: 'cash', label: 'الدفع عند الاستلام', icon: '💵' },
-                    { value: 'card', label: 'بطاقة ائتمان', icon: '💳' },
-                    { value: 'online', label: 'الدفع الإلكتروني', icon: '📱' },
+                    { value: "cash", label: "الدفع عند الاستلام", icon: "💵" },
+                    { value: "card", label: "بطاقة ائتمان", icon: "💳" },
+                    { value: "online", label: "الدفع الإلكتروني", icon: "📱" },
                   ].map((method) => (
                     <label
                       key={method.value}
                       className={`flex items-center gap-3 p-4 rounded-m3 border-2 cursor-pointer transition-all ${
                         formData.paymentMethod === method.value
-                          ? 'border-primary bg-primary-container'
-                          : 'border-outline hover:border-outline-variant'
+                          ? "border-primary bg-primary-container"
+                          : "border-outline hover:border-outline-variant"
                       }`}
                     >
                       <input
@@ -303,7 +381,8 @@ export default function CheckoutPage() {
                     <p className="md-typescale-body-medium text-primary">
                       {formatPrice(
                         (item.product.discount
-                          ? item.product.price * (1 - item.product.discount / 100)
+                          ? item.product.price *
+                            (1 - item.product.discount / 100)
                           : item.product.price) * item.quantity
                       )}
                     </p>
@@ -317,10 +396,7 @@ export default function CheckoutPage() {
                   <span>المجموع الفرعي:</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
-                <div className="flex justify-between md-typescale-body-medium text-on-surface">
-                  <span>رسوم التوصيل:</span>
-                  <span>{formatPrice(deliveryFee)}</span>
-                </div>
+                {/* Delivery fee hidden - showing only subtotal and total */}
                 <div className="flex justify-between md-typescale-title-large text-primary pt-2 border-t border-outline-variant">
                   <span>الإجمالي:</span>
                   <span>{formatPrice(total)}</span>
@@ -354,4 +430,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-

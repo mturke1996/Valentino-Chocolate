@@ -102,36 +102,44 @@ export default function DashboardHome() {
       label: "إجمالي الطلبات",
       value: stats.totalOrders,
       icon: ShoppingBag,
-      color: "primary",
+      bgColor: "bg-primary-container",
+      iconColor: "text-primary",
       change: "+12%",
+      changeColor: "text-primary bg-primary-container",
     },
     {
       label: "إجمالي الإيرادات",
       value: formatPrice(stats.totalRevenue),
       icon: DollarSign,
-      color: "secondary",
+      bgColor: "bg-secondary-container",
+      iconColor: "text-secondary",
       change: "+8%",
+      changeColor: "text-primary bg-primary-container",
     },
     {
       label: "المنتجات",
       value: stats.totalProducts,
       icon: Package,
-      color: "tertiary",
+      bgColor: "bg-tertiary-container",
+      iconColor: "text-tertiary",
       change: "+3",
+      changeColor: "text-primary bg-primary-container",
     },
     {
       label: "الطلبات المعلقة",
       value: stats.pendingOrders,
       icon: TrendingUp,
-      color: "error",
+      bgColor: "bg-error-container",
+      iconColor: "text-error",
       change: "-2",
+      changeColor: "text-red-700 bg-red-100",
     },
   ];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-outline-variant border-t-transparent"></div>
       </div>
     );
   }
@@ -163,10 +171,12 @@ export default function DashboardHome() {
             className="md-elevated-card p-6"
           >
             <div className="flex items-start justify-between mb-4">
-              <div className={`p-3 bg-${stat.color}-container rounded-m3`}>
-                <stat.icon className={`h-6 w-6 text-${stat.color}`} />
+              <div className={`p-3 rounded-m3 ${stat.bgColor}`}>
+                <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
               </div>
-              <span className="md-typescale-label-small text-green-600 bg-green-100 px-2 py-1 rounded-m3-sm">
+              <span
+                className={`md-typescale-label-small px-2 py-1 rounded-m3-sm ${stat.changeColor}`}
+              >
                 {stat.change}
               </span>
             </div>
@@ -234,7 +244,7 @@ export default function DashboardHome() {
                     key={order.id}
                     className="border-b border-outline-variant hover:bg-surface-variant"
                   >
-                    <td className="py-4 md-typescale-body-medium text-primary">
+                    <td className="py-4 md-typescale-body-medium text-on-surface">
                       #{order.orderNumber}
                     </td>
                     <td className="py-4 md-typescale-body-medium text-on-surface">

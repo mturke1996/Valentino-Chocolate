@@ -5,13 +5,13 @@ import { db } from "../firebase";
 
 /**
  * Hero Section بتصميم Material Design 3
- *
+ * 
  * مقاسات الصور الموصى بها:
  * - للكمبيوتر: 1920x800 بكسل (Landscape)
  * - للموبايل: 800x1200 بكسل (Portrait) أو استخدم نفس الصورة مع object-fit
  * - حجم الملف: أقل من 500KB لكل صورة
  * - الصيغة المفضلة: WebP أو JPG
- *
+ * 
  * يمكن رفع الصور من لوحة التحكم في قسم "الإعدادات" -> "إعدادات الصفحة الرئيسية"
  */
 
@@ -24,8 +24,8 @@ export default function Hero() {
       "https://images.unsplash.com/photo-1481391243133-f96216dcb5d2?w=1920&q=80",
       "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=1920&q=80",
     ],
-    title: "فالنتينو للشوكولاتة الفاخرة",
-    subtitle: "استمتع بأجود أنواع الشوكولاتة المستوردة",
+    title: "شوكولاتة فاخرة",
+    subtitle: "استمتع بأجود أنواع الشوكولاتة المستوردة والمحلية",
   });
 
   useEffect(() => {
@@ -37,8 +37,8 @@ export default function Hero() {
           setHeroData({
             images:
               data.heroImages && data.heroImages.length > 0
-                ? data.heroImages
-                : heroData.images,
+              ? data.heroImages 
+              : heroData.images,
             title: data.heroTitleAr || heroData.title,
             subtitle: data.heroSubtitleAr || heroData.subtitle,
           });
@@ -105,58 +105,58 @@ export default function Hero() {
       {/* Content */}
       <div className="relative z-20 h-full w-full flex items-center justify-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          {/* Title */}
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            {/* Title */}
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6"
               style={{
                 textShadow:
                   "2px 2px 8px rgba(0,0,0,0.7), 0 0 20px rgba(0,0,0,0.5)",
                 fontFamily: "Cairo, Tajawal, sans-serif",
               }}
-            >
-              {heroData.title}
-            </motion.h1>
+          >
+            {heroData.title}
+          </motion.h1>
 
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
+          {/* Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
               className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white mb-10 font-light"
               style={{
                 textShadow:
                   "1px 1px 6px rgba(0,0,0,0.8), 0 0 15px rgba(0,0,0,0.5)",
                 fontFamily: "Cairo, Tajawal, sans-serif",
               }}
-            >
-              {heroData.subtitle}
-            </motion.p>
+          >
+            {heroData.subtitle}
+          </motion.p>
 
             {/* CTA Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
               className="flex justify-center"
-            >
-              <motion.a
+          >
+            <motion.a
                 href="#products"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="inline-block bg-primary hover:bg-primary-container text-white px-10 py-5 rounded-lg text-lg font-semibold shadow-xl transition-all"
-              >
+                whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+                className="inline-block bg-primary hover:bg-primary/90 text-white px-12 py-5 rounded-xl text-lg font-semibold shadow-2xl transition-all border-2 border-white/20 backdrop-blur-sm"
+            >
                 تسوق الآن
-              </motion.a>
-            </motion.div>
+            </motion.a>
           </motion.div>
+        </motion.div>
         </div>
       </div>
     </section>

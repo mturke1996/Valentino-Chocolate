@@ -1,11 +1,19 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { doc, getDoc, collection, query, where, limit, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
-import { Product } from '../types';
-import { formatPrice } from '../utils/formatters';
-import { useCartStore } from '../store/cartStore';
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import { Product } from "../types";
+import { formatPrice } from "../utils/formatters";
+import { useCartStore } from "../store/cartStore";
 import {
   ShoppingCart,
   Heart,
@@ -16,19 +24,21 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-} from 'lucide-react';
-import ProductCard from '../components/ProductCard';
-import toast from 'react-hot-toast';
+  MessageSquare,
+} from "lucide-react";
+import ProductCard from "../components/ProductCard";
+import AddReviewModal from "../components/AddReviewModal";
+import toast from "react-hot-toast";
 
 /**
  * صفحة تفاصيل المنتج
- * 
+ *
  * مقاسات الصور الموصى بها:
  * - الصورة الرئيسية: 800x800 بكسل (مربع)
  * - صور إضافية: 800x800 بكسل (مربع)
  * - حجم الملف: أقل من 300KB لكل صورة
  * - الصيغة المفضلة: WebP أو JPG
- * 
+ *
  * يمكن رفع عدة صور لكل منتج من لوحة التحكم
  */
 
@@ -40,6 +50,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const addToCart = useCartStore((state) => state.addToCart);
 
   useEffect(() => {
@@ -48,26 +59,29 @@ export default function ProductDetailPage() {
 
       try {
         // Fetch Product
-        const productDoc = await getDoc(doc(db, 'products', id));
+        const productDoc = await getDoc(doc(db, "products", id));
         if (productDoc.exists()) {
-          const productData = { id: productDoc.id, ...productDoc.data() } as Product;
+          const productData = {
+            id: productDoc.id,
+            ...productDoc.data(),
+          } as Product;
           setProduct(productData);
 
           // Fetch Related Products
           const relatedQuery = query(
-            collection(db, 'products'),
-            where('category', '==', productData.category),
-            where('inStock', '==', true),
+            collection(db, "products"),
+            where("category", "==", productData.category),
+            where("inStock", "==", true),
             limit(4)
           );
           const relatedSnapshot = await getDocs(relatedQuery);
           const relatedData = relatedSnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }) as Product)
-            .filter(p => p.id !== id);
+            .map((doc) => ({ id: doc.id, ...doc.data() } as Product))
+            .filter((p) => p.id !== id);
           setRelatedProducts(relatedData);
         }
       } catch (error) {
-        console.error('Error fetching product:', error);
+        console.error("Error fetching product:", error);
       } finally {
         setLoading(false);
       }
@@ -122,7 +136,7 @@ export default function ProductDetailPage() {
       });
     } else {
       navigator.clipboard.writeText(window.location.href);
-      toast.success('تم نسخ الرابط');
+      toast.success("تم نسخ الرابط");
     }
   };
 
@@ -131,7 +145,9 @@ export default function ProductDetailPage() {
   };
 
   const prevImage = () => {
-    setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
+    setSelectedImage(
+      (prev) => (prev - 1 + product.images.length) % product.images.length
+    );
   };
 
   return (
@@ -143,9 +159,13 @@ export default function ProductDetailPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8 flex items-center gap-2 md-typescale-body-small text-on-surface-variant"
         >
-          <Link to="/" className="hover:text-primary">الرئيسية</Link>
+          <Link to="/" className="hover:text-primary">
+            الرئيسية
+          </Link>
           <span>/</span>
-          <Link to="/products" className="hover:text-primary">المنتجات</Link>
+          <Link to="/products" className="hover:text-primary">
+            المنتجات
+          </Link>
           <span>/</span>
           <span className="text-on-surface">{product.nameAr}</span>
         </motion.nav>
@@ -218,8 +238,8 @@ export default function ProductDetailPage() {
                     onClick={() => setSelectedImage(index)}
                     className={`aspect-square rounded-m3-sm overflow-hidden ${
                       selectedImage === index
-                        ? 'ring-2 ring-primary'
-                        : 'opacity-60 hover:opacity-100'
+                        ? "ring-2 ring-primary"
+                        : "opacity-60 hover:opacity-100"
                     } transition-all`}
                   >
                     <img
@@ -258,8 +278,8 @@ export default function ProductDetailPage() {
                       key={i}
                       className={`h-5 w-5 ${
                         i < Math.floor(product.rating!)
-                          ? 'fill-yellow-500 text-yellow-500'
-                          : 'text-outline-variant'
+                          ? "fill-yellow-500 text-yellow-500"
+                          : "text-outline-variant"
                       }`}
                     />
                   ))}
@@ -292,18 +312,26 @@ export default function ProductDetailPage() {
             {/* Additional Info */}
             {product.weight && (
               <div className="flex items-center gap-2 text-on-surface">
-                <span className="material-symbols-rounded text-primary">scale</span>
-                <span className="md-typescale-body-medium">الوزن: {product.weight}</span>
+                <span className="material-symbols-rounded text-primary">
+                  scale
+                </span>
+                <span className="md-typescale-body-medium">
+                  الوزن: {product.weight}
+                </span>
               </div>
             )}
 
             {/* Stock Status */}
-            <div className={`flex items-center gap-2 ${product.inStock ? 'text-green-600' : 'text-error'}`}>
+            <div
+              className={`flex items-center gap-2 ${
+                product.inStock ? "text-primary" : "text-error"
+              }`}
+            >
               <span className="material-symbols-rounded">
-                {product.inStock ? 'check_circle' : 'cancel'}
+                {product.inStock ? "check_circle" : "cancel"}
               </span>
               <span className="md-typescale-body-medium">
-                {product.inStock ? 'متوفر في المخزون' : 'نفذت الكمية'}
+                {product.inStock ? "متوفر في المخزون" : "نفذت الكمية"}
               </span>
             </div>
 
@@ -347,20 +375,29 @@ export default function ProductDetailPage() {
             )}
 
             {/* Actions */}
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex-1 md-outlined-button"
+                onClick={() => setReviewModalOpen(true)}
+                className="flex-1 md-outlined-button min-w-[140px]"
+              >
+                <MessageSquare className="h-5 w-5 ml-2" />
+                أضف تقييم
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="md-outlined-button"
               >
                 <Heart className="h-5 w-5 ml-2" />
-                إضافة للمفضلة
+                مفضلة
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleShare}
-                className="flex-1 md-outlined-button"
+                className="md-outlined-button"
               >
                 <Share2 className="h-5 w-5 ml-2" />
                 مشاركة
@@ -372,15 +409,23 @@ export default function ProductDetailPage() {
               <div className="md-filled-card p-4 flex items-center gap-3">
                 <Truck className="h-6 w-6 text-primary flex-shrink-0" />
                 <div>
-                  <p className="md-typescale-title-small text-on-surface">توصيل سريع</p>
-                  <p className="md-typescale-body-small text-on-surface-variant">خلال 24 ساعة</p>
+                  <p className="md-typescale-title-small text-on-surface">
+                    توصيل سريع
+                  </p>
+                  <p className="md-typescale-body-small text-on-surface-variant">
+                    خلال 24 ساعة
+                  </p>
                 </div>
               </div>
               <div className="md-filled-card p-4 flex items-center gap-3">
                 <Shield className="h-6 w-6 text-primary flex-shrink-0" />
                 <div>
-                  <p className="md-typescale-title-small text-on-surface">دفع آمن</p>
-                  <p className="md-typescale-body-small text-on-surface-variant">100% محمي</p>
+                  <p className="md-typescale-title-small text-on-surface">
+                    دفع آمن
+                  </p>
+                  <p className="md-typescale-body-small text-on-surface-variant">
+                    100% محمي
+                  </p>
                 </div>
               </div>
             </div>
@@ -430,8 +475,19 @@ export default function ProductDetailPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Review Modal */}
+        {product && (
+          <AddReviewModal
+            product={product}
+            isOpen={reviewModalOpen}
+            onClose={() => setReviewModalOpen(false)}
+            onSuccess={() => {
+              // Refresh product data if needed
+            }}
+          />
+        )}
       </div>
     </div>
   );
 }
-

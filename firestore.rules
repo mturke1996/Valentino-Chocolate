@@ -50,7 +50,8 @@ service cloud.firestore {
     
     // Admins Collection
     match /admins/{adminId} {
-      allow read: if isAdmin();
+      // Allow read for authenticated users to check if they are admin
+      allow read: if isSignedIn();
       allow write: if false; // Only through Firebase Console
     }
     
@@ -59,6 +60,14 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow create: if true; // Anyone can send messages
       allow update, delete: if isAdmin();
+    }
+
+    // Telegram Chats Collection
+    match /telegramChats/{chatId} {
+      // Allow read for authenticated users (needed for notifications)
+      allow read: if isSignedIn();
+      // Only admins can write
+      allow write: if isAdmin();
     }
   }
 }

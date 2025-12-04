@@ -1,39 +1,46 @@
-import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Twitter, Phone, Mail, MapPin } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { motion } from 'framer-motion';
+import { Link } from "react-router-dom";
+import {
+  Facebook,
+  Instagram,
+  Twitter,
+  Phone,
+  Mail,
+  MapPin,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
+import { motion } from "framer-motion";
 
 export default function Footer() {
   const [settings, setSettings] = useState({
-    siteName: 'فالنتينو للشوكولاتة',
-    phone: '094-0234000',
-    email: 'info@valentino-chocolate.com',
-    address: 'نوفليين، طرابلس، ليبيا',
-    facebook: 'https://www.facebook.com/share/1BUEmW1e2k/',
-    instagram: 'https://www.instagram.com/valentino_libya',
-    twitter: '',
+    siteName: "فالنتينو للشوكولاتة",
+    phone: "094-0234000",
+    email: "info@valentino-chocolate.com",
+    address: "نوفليين، طرابلس، ليبيا",
+    facebook: "https://www.facebook.com/share/1BUEmW1e2k/",
+    instagram: "https://www.instagram.com/valentino_libya",
+    twitter: "",
   });
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const settingsDoc = await getDoc(doc(db, 'settings', 'general'));
+        const settingsDoc = await getDoc(doc(db, "settings", "general"));
         if (settingsDoc.exists()) {
           const data = settingsDoc.data();
           setSettings({
-            siteName: data.siteNameAr || settings.siteName,
+            siteName: data.siteNameAr || "",
             phone: data.phone || settings.phone,
             email: data.email || settings.email,
             address: data.addressAr || settings.address,
-            facebook: data.facebook || '',
-            instagram: data.instagram || '',
-            twitter: data.twitter || '',
+            facebook: data.facebook || "",
+            instagram: data.instagram || "",
+            twitter: data.twitter || "",
           });
         }
       } catch (error) {
-        console.error('Error fetching settings:', error);
+        console.error("Error fetching settings:", error);
       }
     };
 
@@ -41,19 +48,19 @@ export default function Footer() {
   }, []);
 
   const footerLinks = [
-    { name: 'الرئيسية', path: '/' },
-    { name: 'المنتجات', path: '/products' },
-    { name: 'من نحن', path: '/about' },
-    { name: 'اتصل بنا', path: '/contact' },
-    { name: 'سياسة الخصوصية', path: '/privacy' },
-    { name: 'الشروط والأحكام', path: '/terms' },
+    { name: "الرئيسية", path: "/" },
+    { name: "المنتجات", path: "/products" },
+    { name: "من نحن", path: "/about" },
+    { name: "اتصل بنا", path: "/contact" },
+    { name: "سياسة الخصوصية", path: "/privacy" },
+    { name: "الشروط والأحكام", path: "/terms" },
   ];
 
   const socialLinks = [
-    { icon: Facebook, url: settings.facebook, label: 'فيسبوك' },
-    { icon: Instagram, url: settings.instagram, label: 'إنستجرام' },
-    { icon: Twitter, url: settings.twitter, label: 'تويتر' },
-  ].filter(link => link.url);
+    { icon: Facebook, url: settings.facebook, label: "فيسبوك" },
+    { icon: Instagram, url: settings.instagram, label: "إنستجرام" },
+    { icon: Twitter, url: settings.twitter, label: "تويتر" },
+  ].filter((link) => link.url);
 
   return (
     <footer className="bg-surface border-t border-outline-variant mt-20">
@@ -67,15 +74,18 @@ export default function Footer() {
             viewport={{ once: true }}
             className="space-y-4"
           >
-            <div className="flex items-center gap-3">
-              <div className="h-16 w-16 bg-primary rounded-full flex items-center justify-center shadow-md">
-                <span className="text-4xl">🍫</span>
+            <div className="flex items-center justify-center md:justify-start">
+              <img
+                src="/LOGO TRANS@4x.png"
+                alt="Logo"
+                className="h-20 w-auto object-contain"
+                onError={(e) => {
+                  // Fallback to SVG if PNG fails
+                  (e.target as HTMLImageElement).src = "/LOGO SVG.svg";
+                }}
+              />
               </div>
-              <h3 className="md-typescale-title-large text-primary font-bold">
-                {settings.siteName}
-              </h3>
-            </div>
-            <p className="md-typescale-body-medium text-on-surface-variant">
+            <p className="md-typescale-body-medium text-on-surface-variant text-center md:text-right">
               نقدم لكم أجود أنواع الشوكولاتة المستوردة والمحلية بأفضل الأسعار.
               تمتع بتجربة تسوق فريدة واستمتع بطعم الشوكولاتة الفاخرة.
             </p>
@@ -199,7 +209,7 @@ export default function Footer() {
         >
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="md-typescale-body-small text-on-surface-variant text-center md:text-right">
-              © {new Date().getFullYear()} {settings.siteName}. جميع الحقوق محفوظة.
+              © {new Date().getFullYear()} جميع الحقوق محفوظة.
             </p>
             <div className="flex items-center gap-2 md-typescale-body-small text-on-surface-variant">
               <span>صُنع بـ</span>
@@ -218,4 +228,3 @@ export default function Footer() {
     </footer>
   );
 }
-

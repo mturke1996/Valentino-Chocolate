@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   collection,
   query,
@@ -8,116 +8,35 @@ import {
   orderBy,
   limit,
   getDocs,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { Product, Category } from "../types";
+import { Product, Category, Review } from "../types";
 import Hero from "../components/Hero";
 import ProductCard from "../components/ProductCard";
-
-// منتجات تجريبية مع صور شوكولاتة عالية الجودة
-const demoProducts: Product[] = [
-  {
-    id: "2",
-    name: "Dark Chocolate 70%",
-    nameAr: "شوكولاتة داكنة 70%",
-    description: "Rich dark chocolate with 70% cocoa",
-    descriptionAr: "شوكولاتة داكنة غنية بنسبة 70% كاكاو",
-    category: "dark",
-    price: 55,
-    images: [
-      "https://images.unsplash.com/photo-1511381939415-e44015466834?w=800&q=80",
-    ],
-    inStock: true,
-    featured: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "4",
-    name: "Hazelnut Chocolate",
-    nameAr: "شوكولاتة بالبندق",
-    description: "Premium chocolate filled with natural hazelnut cream",
-    descriptionAr: "شوكولاتة فاخرة محشوة بكريمة البندق الطبيعية",
-    category: "nuts",
-    price: 60,
-    images: [
-      "https://images.unsplash.com/photo-1548907040-4baa42d10919?w=800&q=80",
-    ],
-    inStock: true,
-    featured: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "5",
-    name: "Premium White Chocolate",
-    nameAr: "شوكولاتة بيضاء فاخرة",
-    description: "Smooth creamy white chocolate with wonderful taste",
-    descriptionAr: "شوكولاتة بيضاء كريمية ناعمة ذات طعم رائع",
-    category: "white",
-    price: 50,
-    images: [
-      "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&q=80",
-    ],
-    inStock: true,
-    featured: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "6",
-    name: "Special Gift Box",
-    nameAr: "علبة الهدايا الخاصة",
-    description: "Luxury gift box with assorted chocolates",
-    descriptionAr: "علبة هدايا فاخرة تحتوي على تشكيلة متنوعة من الشوكولاتة",
-    category: "gifts",
-    price: 120,
-    images: [
-      "https://images.unsplash.com/photo-1571506165871-ee72a35bc9d4?w=800&q=80",
-    ],
-    inStock: true,
-    featured: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "7",
-    name: "Caramel Chocolate",
-    nameAr: "شوكولاتة بالكراميل",
-    description: "Premium chocolate with golden caramel filling",
-    descriptionAr: "شوكولاتة فاخرة بحشوة الكراميل الذهبية",
-    category: "filled",
-    price: 65,
-    images: [
-      "https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?w=800&q=80",
-    ],
-    inStock: true,
-    featured: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "8",
-    name: "Strawberry Chocolate",
-    nameAr: "شوكولاتة بالفراولة",
-    description: "Milk chocolate with natural strawberry pieces",
-    descriptionAr: "شوكولاتة بالحليب مع قطع الفراولة الطبيعية",
-    category: "fruity",
-    price: 58,
-    images: [
-      "https://images.unsplash.com/photo-1481391243133-f96216dcb5d2?w=800&q=80",
-    ],
-    inStock: true,
-    featured: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+import { formatDateTime } from "../utils/formatters";
+import { notifyNewMessage } from "../utils/telegramNotifications";
+import toast from "react-hot-toast";
+import MaterialRipple from "../components/MaterialRipple";
+import AddReviewModal from "../components/AddReviewModal";
 
 export default function HomePage() {
-  const [featuredProducts, setFeaturedProducts] =
-    useState<Product[]>(demoProducts);
+  const navigate = useNavigate();
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+  const [submittingMessage, setSubmittingMessage] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedProductForReview, setSelectedProductForReview] =
+    useState<Product | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -135,12 +54,7 @@ export default function HomePage() {
           ...doc.data(),
         })) as Product[];
 
-        // استخدام المنتجات التجريبية إذا لم توجد منتجات حقيقية
-        if (productsData.length > 0) {
-          setFeaturedProducts(productsData);
-        } else {
-          setFeaturedProducts(demoProducts);
-        }
+        setFeaturedProducts(productsData);
 
         // Fetch Categories
         const categoriesQuery = query(
@@ -154,15 +68,58 @@ export default function HomePage() {
           ...doc.data(),
         })) as Category[];
         setCategories(categoriesData);
+
+        // Fetch Reviews (without verified filter to avoid index requirement)
+        const reviewsQuery = query(
+          collection(db, "reviews"),
+          orderBy("createdAt", "desc"),
+          limit(6)
+        );
+        const reviewsSnapshot = await getDocs(reviewsQuery);
+        const allReviews = reviewsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Review[];
+        const verifiedReviews = allReviews
+          .filter((review) => review.verified === true)
+          .slice(0, 6);
+        setReviews(verifiedReviews);
       } catch (error) {
         console.error("Error fetching data:", error);
-        // استخدام المنتجات التجريبية في حالة حدوث خطأ
-        setFeaturedProducts(demoProducts);
       }
     };
 
     fetchData();
   }, []);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingMessage(true);
+
+    try {
+      const messageData = {
+        name: contactForm.name,
+        email: contactForm.email || "",
+        phone: contactForm.phone || "",
+        message: contactForm.message,
+        status: "new" as const,
+        createdAt: serverTimestamp(),
+      };
+
+      const docRef = await addDoc(collection(db, "messages"), messageData);
+
+      // Send Telegram notification
+      await notifyNewMessage({ id: docRef.id, ...messageData } as any);
+
+      toast.success("تم إرسال رسالتك بنجاح! سنتواصل معك قريباً.");
+      setContactForm({ name: "", email: "", phone: "", message: "" });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast.error("حدث خطأ أثناء إرسال الرسالة");
+    } finally {
+      setSubmittingMessage(false);
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -209,9 +166,9 @@ export default function HomePage() {
                 className="text-xl md:text-2xl text-on-surface-variant leading-relaxed font-light"
                 style={{ fontFamily: "Cairo, Tajawal, sans-serif" }}
               >
-                فالنتينو للشوكولاتة هي وجهتك المثالية للحصول على أجود أنواع
-                الشوكولاتة الفاخرة في ليبيا. نقدم مجموعة متنوعة من الشوكولاتة
-                المستوردة والمحلية بأعلى معايير الجودة.
+                نحن وجهتك المثالية للحصول على أجود أنواع الشوكولاتة الفاخرة في
+                ليبيا. نقدم مجموعة متنوعة من الشوكولاتة المستوردة والمحلية بأعلى
+                معايير الجودة.
               </motion.p>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -287,7 +244,7 @@ export default function HomePage() {
                 className="group flex flex-col items-center gap-3 text-primary transition-all"
                 style={{ fontFamily: "Cairo, Tajawal, sans-serif" }}
               >
-                <div className="w-20 h-20 bg-green-500 rounded-2xl flex items-center justify-center shadow-2xl group-hover:shadow-green-500/50 transition-all duration-300 transform group-hover:rotate-12">
+                <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center shadow-2xl group-hover:shadow-primary/50 transition-all duration-300 transform group-hover:rotate-12">
                   <svg
                     className="w-10 h-10 text-white"
                     fill="currentColor"
@@ -305,63 +262,147 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
+      {/* Categories Section - Compact & Scrollable */}
       {categories.length > 0 && (
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-8 sm:py-12 bg-gradient-to-b from-white via-surface-variant/20 to-white relative overflow-hidden">
+          {/* Background Decoration */}
+          <div className="absolute inset-0 opacity-5 pointer-events-none">
+            <div className="absolute top-10 right-10 w-64 h-64 bg-primary rounded-full blur-3xl"></div>
+            <div className="absolute bottom-10 left-10 w-80 h-80 bg-secondary rounded-full blur-3xl"></div>
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-12"
+              className="text-center mb-6"
             >
-              <h2 className="md-typescale-display-small text-on-background mb-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-on-background mb-2">
                 تصفح حسب الفئة
               </h2>
-              <p className="md-typescale-body-large text-on-surface-variant max-w-2xl mx-auto">
-                اكتشف مجموعة واسعة من الشوكولاتة الفاخرة المصنفة حسب نوعها وذوقك
+              <p className="text-sm sm:text-base text-on-surface-variant">
+                اكتشف مجموعتنا المتنوعة من الشوكولاتة الفاخرة
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {categories.map((category, index) => (
-                <Link
-                  key={category.id}
-                  to={`/products?category=${category.id}`}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.05 }}
-                    whileHover={{ y: -8, scale: 1.05 }}
-                    className="md-filled-card p-4 text-center ripple"
-                  >
-                    {category.image ? (
-                      <img
-                        src={category.image}
-                        alt={category.nameAr}
-                        className="w-20 h-20 mx-auto mb-3 object-cover rounded-m3"
-                      />
-                    ) : (
-                      <div className="w-20 h-20 mx-auto mb-3 bg-primary-container rounded-m3 flex items-center justify-center">
-                        <span className="material-symbols-rounded text-primary text-4xl">
-                          category
-                        </span>
-                      </div>
-                    )}
-                    <h3 className="md-typescale-title-small text-on-surface">
-                      {category.nameAr}
-                    </h3>
-                    {category.productsCount && (
-                      <p className="md-typescale-label-small text-on-surface-variant mt-1">
-                        {category.productsCount} منتج
-                      </p>
-                    )}
-                  </motion.div>
-                </Link>
-              ))}
+            {/* Scrollable Categories - Compact Design */}
+            <div className="relative mb-6">
+              {/* Gradient Overlays for Scroll Indication */}
+              <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+              <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+
+              <div className="overflow-x-auto scrollbar-hide pb-3 -mx-4 px-4 scroll-smooth">
+                <div className="flex gap-2.5 min-w-max">
+                  {categories.map((category, index) => (
+                    <motion.div
+                      key={category.id}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{
+                        delay: index * 0.05,
+                        type: "spring",
+                        stiffness: 200,
+                      }}
+                      whileHover={{ scale: 1.08, y: -6 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Link to={`/products?category=${category.id}`}>
+                        <MaterialRipple>
+                          <div className="flex flex-col items-center gap-1.5 px-3 py-2.5 bg-surface border border-outline-variant/50 rounded-xl min-w-[80px] sm:min-w-[90px] hover:bg-primary-container hover:border-primary hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden">
+                            {/* Hover Effect Background */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary-container/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                            {/* Icon/Image */}
+                            <div className="relative z-10 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-primary-container/20 group-hover:bg-primary-container flex items-center justify-center transition-all duration-300 group-hover:scale-110">
+                              {category.image ? (
+                                <img
+                                  src={category.image}
+                                  alt={category.nameAr}
+                                  className="w-8 h-8 sm:w-9 sm:h-9 object-cover rounded-full"
+                                />
+                              ) : (
+                                <span className="material-symbols-rounded text-primary text-xl sm:text-2xl group-hover:text-on-primary-container transition-colors">
+                                  category
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Name */}
+                            <h3 className="relative z-10 text-xs sm:text-sm text-on-surface text-center font-medium line-clamp-1 group-hover:text-on-primary-container transition-colors">
+                              {category.nameAr}
+                            </h3>
+
+                            {/* Products Count Badge */}
+                            {category.productsCount && (
+                              <span className="relative z-10 px-1.5 py-0.5 bg-surface-variant group-hover:bg-on-primary-container/20 text-on-surface-variant group-hover:text-on-primary-container text-[10px] rounded-full transition-colors">
+                                {category.productsCount}
+                              </span>
+                            )}
+                          </div>
+                        </MaterialRipple>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
             </div>
+
+            {/* Search Bar - Enhanced */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="max-w-2xl mx-auto"
+            >
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (searchQuery.trim()) {
+                    navigate(
+                      `/products?search=${encodeURIComponent(
+                        searchQuery.trim()
+                      )}`
+                    );
+                  }
+                }}
+                className="relative group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative bg-surface border-2 border-outline-variant rounded-full overflow-hidden shadow-sm hover:shadow-md transition-all group-hover:border-primary">
+                  <span className="material-symbols-rounded absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl pointer-events-none group-hover:text-primary transition-colors">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="ابحث عن منتج، فئة، أو وصف..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pr-12 pl-4 py-3 sm:py-3.5 bg-transparent text-sm sm:text-base text-on-surface focus:outline-none placeholder:text-on-surface-variant"
+                    style={{
+                      borderRadius: "var(--md-sys-shape-corner-extra-large)",
+                    }}
+                  />
+                  {searchQuery && (
+                    <MaterialRipple>
+                      <button
+                        type="submit"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-on-primary rounded-full text-xs sm:text-sm font-medium transition-all hover:shadow-lg hover:scale-105 active:scale-95"
+                        style={{
+                          borderRadius:
+                            "var(--md-sys-shape-corner-extra-large)",
+                        }}
+                      >
+                        بحث
+                      </button>
+                    </MaterialRipple>
+                  )}
+                </div>
+              </form>
+            </motion.div>
           </div>
         </section>
       )}
@@ -448,7 +489,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-12"
           >
             <h2
               className="text-4xl md:text-5xl font-bold text-primary mb-6"
@@ -458,96 +499,106 @@ export default function HomePage() {
             </h2>
             <div className="w-32 h-1 bg-primary mx-auto mb-6"></div>
             <p
-              className="text-lg md:text-xl text-on-surface-variant"
+              className="text-lg md:text-xl text-on-surface-variant mb-6"
               style={{ fontFamily: "Cairo, Tajawal, sans-serif" }}
             >
               ماذا يقول عملاؤنا عن منتجاتنا وخدماتنا
             </p>
+            {/* Add Review Button */}
+            {featuredProducts.length > 0 && (
+              <MaterialRipple>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setSelectedProductForReview(featuredProducts[0]);
+                    setShowReviewModal(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-full font-medium shadow-lg hover:shadow-xl transition-all"
+                  style={{
+                    borderRadius: "var(--md-sys-shape-corner-extra-large)",
+                  }}
+                >
+                  <span className="material-symbols-rounded">rate_review</span>
+                  <span>أضف تقييمك</span>
+                </motion.button>
+              </MaterialRipple>
+            )}
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                name: "أحمد محمد",
-                rating: 5,
-                comment:
-                  "شوكولاتة رائعة وجودة عالية، التوصيل سريع والخدمة ممتازة. أنصح بشدة!",
-                date: "منذ أسبوع",
-                reply:
-                  "شكراً لك على تقييمك الرائع! نحن سعداء جداً لأنك استمتعت بمنتجاتنا. نتمنى أن نراك مرة أخرى قريباً! 🍫",
-              },
-              {
-                name: "فاطمة علي",
-                rating: 5,
-                comment:
-                  "أفضل شوكولاتة جربتها في ليبيا، الطعم مميز والتغليف أنيق جداً",
-                date: "منذ أسبوعين",
-                reply:
-                  "نشكرك على كلماتك الجميلة! نسعد دائماً بتقديم أفضل تجربة لعملائنا الكرام. نتمنى أن نكون دائماً عند حسن ظنكم! ❤️",
-              },
-              {
-                name: "سارة خالد",
-                rating: 5,
-                comment:
-                  "هدايا رائعة ومناسبة لجميع المناسبات، جودة ممتازة وأسعار مناسبة",
-                date: "منذ شهر",
-                reply:
-                  "شكراً جزيلاً لك! نحن فخورون بأن منتجاتنا تنال إعجابك. نتمنى أن نكون خيارك الأول دائماً! 🌟",
-              },
-            ].map((review, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
-                className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all"
-                style={{ fontFamily: "Cairo, Tajawal, sans-serif" }}
-              >
-                <div className="flex items-center mb-6">
-                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl">
-                    {review.name.charAt(0)}
-                  </div>
-                  <div className="mr-4 flex-1">
-                    <h3 className="font-bold text-xl text-primary mb-1">
-                      {review.name}
-                    </h3>
-                    <p className="text-sm text-on-surface-variant">
-                      {review.date}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex mb-4">
-                  {[...Array(review.rating)].map((_, i) => (
-                    <span key={i} className="text-yellow-500 text-2xl">
-                      ★
-                    </span>
-                  ))}
-                </div>
-                <p className="text-on-surface-variant leading-relaxed text-lg mb-6">
-                  "{review.comment}"
-                </p>
-
-                {/* Reply from Store */}
-                {review.reply && (
-                  <div className="bg-primary-container/20 p-5 rounded-xl border-r-4 border-primary">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-bold">ف</span>
-                      </div>
-                      <span className="font-bold text-primary">
-                        فالنتينو للشوكولاتة
-                      </span>
+          {reviews.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {reviews.map((review, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ y: -5 }}
+                  className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all"
+                  style={{ fontFamily: "Cairo, Tajawal, sans-serif" }}
+                >
+                  <div className="flex items-center mb-6">
+                    <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl">
+                      {review.userName.charAt(0)}
                     </div>
-                    <p className="text-on-surface-variant leading-relaxed text-base pr-4">
-                      {review.reply}
-                    </p>
+                    <div className="mr-4 flex-1">
+                      <h3 className="font-bold text-xl text-primary mb-1">
+                        {review.userName}
+                      </h3>
+                      <p className="text-sm text-on-surface-variant">
+                        {review.createdAt && formatDateTime(review.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                )}
-              </motion.div>
-            ))}
-          </div>
+                  <div className="flex mb-4">
+                    {[...Array(review.rating)].map((_, i) => (
+                      <span key={i} className="text-yellow-500 text-2xl">
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-on-surface-variant leading-relaxed text-lg mb-6">
+                    "{review.comment}"
+                  </p>
+
+                  {/* Reply from Store */}
+                  {(review as any).reply && (
+                    <div className="bg-primary-container/20 p-5 rounded-xl border-r-4 border-primary">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                          <span className="text-white text-sm font-bold">
+                            ف
+                          </span>
+                        </div>
+                        <span className="font-bold text-primary">الموقع</span>
+                      </div>
+                      <p className="text-on-surface-variant leading-relaxed text-base pr-4">
+                        {(review as any).reply}
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16"
+            >
+              <div className="mb-4">
+                <span className="text-6xl">⭐</span>
+              </div>
+              <h3 className="md-typescale-headline-medium text-on-surface mb-2">
+                لا توجد تقييمات حالياً
+              </h3>
+              <p className="md-typescale-body-medium text-on-surface-variant">
+                كن أول من يقيم منتجاتنا!
+              </p>
+            </motion.div>
+          )}
         </div>
       </section>
 
@@ -574,47 +625,79 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="max-w-2xl mx-auto bg-primary-container/10 p-10 rounded-2xl shadow-xl"
+            className="max-w-2xl mx-auto bg-gradient-to-br from-surface via-surface-variant/30 to-surface p-8 sm:p-10 rounded-2xl shadow-2xl border border-outline-variant/50"
           >
-            <h3 className="text-2xl font-bold text-primary mb-6">أرسل رسالة</h3>
-            <form className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-primary mb-2">
-                  الاسم
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-3 rounded-lg border-2 border-outline-variant focus:border-primary focus:outline-none transition-colors"
-                  placeholder="أدخل اسمك"
-                />
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-container rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <span className="material-symbols-rounded text-primary-on text-3xl">
+                  mail
+                </span>
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold text-primary mb-2">
+                أرسل رسالة
+              </h3>
+              <p className="text-on-surface-variant">
+                سنرد عليك في أقرب وقت ممكن
+              </p>
+            </div>
+            <form onSubmit={handleContactSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-semibold text-on-surface mb-2">
+                    الاسم *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={contactForm.name}
+                    onChange={(e) =>
+                      setContactForm({ ...contactForm, name: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-outline-variant focus:border-primary focus:outline-none transition-all bg-surface"
+                    placeholder="أدخل اسمك"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-on-surface mb-2">
+                    رقم الهاتف
+                  </label>
+                  <input
+                    type="tel"
+                    value={contactForm.phone}
+                    onChange={(e) =>
+                      setContactForm({ ...contactForm, phone: e.target.value })
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-outline-variant focus:border-primary focus:outline-none transition-all bg-surface"
+                    placeholder="094-0000000"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-primary mb-2">
+                <label className="block text-sm font-semibold text-on-surface mb-2">
                   البريد الإلكتروني
                 </label>
                 <input
                   type="email"
-                  className="w-full px-4 py-3 rounded-lg border-2 border-outline-variant focus:border-primary focus:outline-none transition-colors"
+                  value={contactForm.email}
+                  onChange={(e) =>
+                    setContactForm({ ...contactForm, email: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-xl border-2 border-outline-variant focus:border-primary focus:outline-none transition-all bg-surface"
                   placeholder="example@email.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-primary mb-2">
-                  رقم الهاتف
-                </label>
-                <input
-                  type="tel"
-                  className="w-full px-4 py-3 rounded-lg border-2 border-outline-variant focus:border-primary focus:outline-none transition-colors"
-                  placeholder="094-0000000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-primary mb-2">
-                  الرسالة
+                <label className="block text-sm font-semibold text-on-surface mb-2">
+                  الرسالة *
                 </label>
                 <textarea
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-lg border-2 border-outline-variant focus:border-primary focus:outline-none transition-colors resize-none"
+                  rows={5}
+                  required
+                  value={contactForm.message}
+                  onChange={(e) =>
+                    setContactForm({ ...contactForm, message: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-xl border-2 border-outline-variant focus:border-primary focus:outline-none transition-all resize-none bg-surface"
                   placeholder="اكتب رسالتك هنا..."
                 ></textarea>
               </div>
@@ -622,14 +705,61 @@ export default function HomePage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                className="w-full bg-primary hover:bg-primary-container text-white py-4 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+                disabled={submittingMessage}
+                className="w-full bg-gradient-to-r from-primary to-primary-container hover:from-primary-container hover:to-primary text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                إرسال الرسالة
+                {submittingMessage ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    <span>جاري الإرسال...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-rounded">send</span>
+                    <span>إرسال الرسالة</span>
+                  </>
+                )}
               </motion.button>
             </form>
           </motion.div>
         </div>
       </section>
+
+      {/* Add Review Modal */}
+      {selectedProductForReview && (
+        <AddReviewModal
+          product={selectedProductForReview}
+          isOpen={showReviewModal}
+          onClose={() => {
+            setShowReviewModal(false);
+            setSelectedProductForReview(null);
+          }}
+          onSuccess={() => {
+            // Refresh reviews if needed
+            const fetchReviews = async () => {
+              try {
+                const reviewsQuery = query(
+                  collection(db, "reviews"),
+                  orderBy("createdAt", "desc"),
+                  limit(6)
+                );
+                const reviewsSnapshot = await getDocs(reviewsQuery);
+                const allReviews = reviewsSnapshot.docs.map((doc) => ({
+                  id: doc.id,
+                  ...doc.data(),
+                })) as Review[];
+                const verifiedReviews = allReviews
+                  .filter((review) => review.verified === true)
+                  .slice(0, 6);
+                setReviews(verifiedReviews);
+              } catch (error) {
+                console.error("Error fetching reviews:", error);
+              }
+            };
+            fetchReviews();
+          }}
+        />
+      )}
     </div>
   );
 }

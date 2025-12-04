@@ -1,24 +1,63 @@
-import { Order, Message } from '../types';
+import { Order, Message, TelegramChat } from '../types';
+import { doc, getDoc, collection, query, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 
-const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-
-export const sendTelegramMessage = async (message: string): Promise<boolean> => {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.warn('Telegram credentials not configured');
-    return false;
+const getTelegramSettings = async () => {
+  try {
+    const settingsDoc = await getDoc(doc(db, 'settings', 'general'));
+    if (settingsDoc.exists()) {
+      const data = settingsDoc.data();
+      return {
+        token: data.telegramBotToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN,
+        enabled: data.telegramEnabled !== false,
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching Telegram settings:', error);
   }
+  
+  // Fallback to env variables
+  return {
+    token: import.meta.env.VITE_TELEGRAM_BOT_TOKEN,
+    enabled: true,
+  };
+};
 
+const getEnabledChats = async (permission?: 'orders' | 'orderStatus' | 'messages' | 'reviews' | 'contact'): Promise<TelegramChat[]> => {
+  try {
+    const chatsQuery = query(collection(db, 'telegramChats'));
+    const chatsSnapshot = await getDocs(chatsQuery);
+    const allChats = chatsSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as TelegramChat[];
+
+    // Filter enabled chats
+    let enabledChats = allChats.filter((chat) => chat.enabled);
+
+    // Filter by permission if specified
+    if (permission) {
+      enabledChats = enabledChats.filter((chat) => chat.permissions[permission] === true);
+    }
+
+    return enabledChats;
+  } catch (error) {
+    console.error('Error fetching Telegram chats:', error);
+    return [];
+  }
+};
+
+const sendTelegramMessage = async (message: string, chatId: string, token: string): Promise<boolean> => {
   try {
     const response = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      `https://api.telegram.org/bot${token}/sendMessage`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
+          chat_id: chatId,
           text: message,
           parse_mode: 'HTML',
         }),
@@ -32,6 +71,29 @@ export const sendTelegramMessage = async (message: string): Promise<boolean> => 
   }
 };
 
+const sendToAllChats = async (message: string, permission?: 'orders' | 'orderStatus' | 'messages' | 'reviews' | 'contact'): Promise<boolean> => {
+  const settings = await getTelegramSettings();
+  
+  if (!settings.enabled || !settings.token) {
+    console.warn('Telegram notifications disabled or not configured');
+    return false;
+  }
+
+  const chats = await getEnabledChats(permission);
+  
+  if (chats.length === 0) {
+    console.warn('No enabled chats found for this notification type');
+    return false;
+  }
+
+  // Send to all eligible chats
+  const results = await Promise.all(
+    chats.map((chat) => sendTelegramMessage(message, chat.chatId, settings.token!))
+  );
+
+  return results.some((result) => result === true);
+};
+
 export const notifyNewOrder = async (order: Order): Promise<boolean> => {
   const message = `
 🍫 <b>طلب جديد!</b>
@@ -42,19 +104,20 @@ export const notifyNewOrder = async (order: Order): Promise<boolean> => {
 📍 العنوان: ${order.customerAddress}
 
 🛍️ <b>المنتجات:</b>
-${order.items.map(item => `• ${item.productNameAr} x${item.quantity} - ${item.subtotal} جنيه`).join('\n')}
+${order.items.map(item => `• ${item.productNameAr} x${item.quantity} - ${item.subtotal} د.ل`).join('\n')}
 
-💰 المجموع الفرعي: ${order.subtotal} جنيه
-🚚 رسوم التوصيل: ${order.deliveryFee} جنيه
-💸 الخصم: ${order.discount} جنيه
-💵 <b>الإجمالي: ${order.total} جنيه</b>
+💰 المجموع الفرعي: ${order.subtotal} د.ل
+🚚 رسوم التوصيل: ${order.deliveryFee} د.ل
+💸 الخصم: ${order.discount} د.ل
+💵 <b>الإجمالي: ${order.total} د.ل</b>
+${order.deliveryType === 'pickup' ? '🏪 استلام من المتجر' : '🚚 توصيل إلى العنوان'}
 
 💳 طريقة الدفع: ${order.paymentMethod === 'cash' ? 'كاش' : order.paymentMethod === 'card' ? 'بطاقة' : 'أونلاين'}
 
 ${order.notes ? `📝 ملاحظات: ${order.notes}` : ''}
   `.trim();
 
-  return sendTelegramMessage(message);
+  return sendToAllChats(message, 'orders');
 };
 
 export const notifyOrderStatusChange = async (
@@ -79,7 +142,7 @@ export const notifyOrderStatusChange = async (
 ✅ الحالة الجديدة: <b>${statusText[newStatus] || newStatus}</b>
   `.trim();
 
-  return sendTelegramMessage(message);
+  return sendToAllChats(message, 'orderStatus');
 };
 
 export const notifyNewMessage = async (message: Message): Promise<boolean> => {
@@ -95,7 +158,43 @@ ${message.subject ? `📋 الموضوع: ${message.subject}` : ''}
 ${message.message}
   `.trim();
 
-  return sendTelegramMessage(telegramMessage);
+  return sendToAllChats(telegramMessage, 'messages');
+};
+
+export const notifyNewReview = async (
+  productName: string,
+  rating: number,
+  comment?: string
+): Promise<boolean> => {
+  const message = `
+⭐ <b>تقييم جديد!</b>
+
+🍫 المنتج: ${productName}
+⭐ التقييم: ${rating}/5
+${comment ? `💬 التعليق: ${comment}` : ''}
+  `.trim();
+
+  return sendToAllChats(message, 'reviews');
+};
+
+export const notifyContactMessage = async (
+  name: string,
+  email: string,
+  phone: string,
+  message: string
+): Promise<boolean> => {
+  const telegramMessage = `
+📧 <b>رسالة من التواصل معنا</b>
+
+👤 الاسم: ${name}
+📧 البريد: ${email}
+📱 الهاتف: ${phone}
+
+💬 <b>الرسالة:</b>
+${message}
+  `.trim();
+
+  return sendToAllChats(telegramMessage, 'contact');
 };
 
 export const notifyLowStock = async (
@@ -111,6 +210,6 @@ export const notifyLowStock = async (
 يرجى إعادة تعبئة المخزون في أقرب وقت.
   `.trim();
 
-  return sendTelegramMessage(message);
+  // Low stock notifications go to all chats with orders permission
+  return sendToAllChats(message, 'orders');
 };
-

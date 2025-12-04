@@ -1,8 +1,8 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
-import { useCartStore } from '../store/cartStore';
-import { formatPrice } from '../utils/formatters';
-import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
+import { useCartStore } from "../store/cartStore";
+import { formatPrice } from "../utils/formatters";
+import { Link } from "react-router-dom";
 
 interface CartProps {
   isOpen: boolean;
@@ -10,7 +10,8 @@ interface CartProps {
 }
 
 export default function Cart({ isOpen, onClose }: CartProps) {
-  const { items, removeFromCart, updateQuantity, getTotal, clearCart } = useCartStore();
+  const { items, removeFromCart, updateQuantity, getTotal, clearCart } =
+    useCartStore();
 
   return (
     <AnimatePresence>
@@ -27,14 +28,14 @@ export default function Cart({ isOpen, onClose }: CartProps) {
 
           {/* Cart Panel */}
           <motion.div
-            initial={{ x: '100%' }}
+            initial={{ x: "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25 }}
-            className="fixed left-0 top-0 h-full w-full max-w-md bg-surface shadow-m3-5 z-50 flex flex-col"
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 25 }}
+            className="fixed right-0 top-0 h-full w-full max-w-sm bg-surface shadow-m3-5 z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-outline-variant">
+            <div className="flex items-center justify-between p-3 border-b border-outline-variant">
               <div className="flex items-center gap-3">
                 <ShoppingBag className="h-6 w-6 text-primary" />
                 <h2 className="md-typescale-headline-small text-on-surface">
@@ -55,7 +56,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
             </div>
 
             {/* Cart Items */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 space-y-3 pb-36">
               {items.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -96,7 +97,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                           initial={{ opacity: 0, x: 50 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -50 }}
-                          className="md-elevated-card p-3 flex gap-3"
+                          className="md-elevated-card p-2 flex gap-3"
                         >
                           {/* Product Image */}
                           <Link
@@ -107,7 +108,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                             <img
                               src={item.product.images[0]}
                               alt={item.product.nameAr}
-                              className="w-20 h-20 object-cover rounded-m3-sm"
+                              className="w-14 h-14 object-cover rounded-m3-sm"
                             />
                           </Link>
 
@@ -121,7 +122,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                                 {item.product.nameAr}
                               </h3>
                             </Link>
-                            
+
                             <div className="flex items-center gap-2 mt-1">
                               <span className="md-typescale-title-medium text-primary">
                                 {formatPrice(finalPrice)}
@@ -139,22 +140,28 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() =>
-                                  updateQuantity(item.product.id, item.quantity - 1)
+                                  updateQuantity(
+                                    item.product.id,
+                                    item.quantity - 1
+                                  )
                                 }
                                 className="p-1 rounded-full bg-surface-variant hover:bg-outline-variant transition-colors ripple"
                               >
                                 <Minus className="h-4 w-4 text-on-surface" />
                               </motion.button>
-                              
+
                               <span className="md-typescale-body-medium text-on-surface min-w-[2rem] text-center">
                                 {item.quantity}
                               </span>
-                              
+
                               <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() =>
-                                  updateQuantity(item.product.id, item.quantity + 1)
+                                  updateQuantity(
+                                    item.product.id,
+                                    item.quantity + 1
+                                  )
                                 }
                                 className="p-1 rounded-full bg-surface-variant hover:bg-outline-variant transition-colors ripple"
                               >
@@ -192,11 +199,11 @@ export default function Cart({ isOpen, onClose }: CartProps) {
               )}
             </div>
 
-            {/* Footer */}
+            {/* Footer (fixed inside panel) */}
             {items.length > 0 && (
-              <div className="border-t border-outline-variant p-4 space-y-4 bg-surface-variant">
+              <div className="absolute left-0 right-0 bottom-0 p-4 bg-surface-variant border-t border-outline-variant">
                 {/* Total */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <span className="md-typescale-title-medium text-on-surface">
                     الإجمالي:
                   </span>
@@ -210,7 +217,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full md-filled-button py-4 shadow-m3-2 hover:shadow-m3-3"
+                    className="w-full md-filled-button py-4 shadow-m3-2 hover:shadow-m3-3 text-base"
                   >
                     <span className="flex items-center justify-center gap-2">
                       <span>إتمام الطلب</span>
@@ -226,7 +233,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full md-outlined-button"
+                    className="w-full md-outlined-button mt-2 py-3 text-base"
                   >
                     متابعة التسوق
                   </motion.button>
@@ -239,4 +246,3 @@ export default function Cart({ isOpen, onClose }: CartProps) {
     </AnimatePresence>
   );
 }
-
