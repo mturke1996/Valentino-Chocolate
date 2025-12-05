@@ -31,17 +31,18 @@ export default function Cart({ isOpen, onClose }: CartProps) {
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 25 }}
-            className="fixed right-0 top-0 h-full w-full max-w-sm bg-surface shadow-m3-5 z-50 flex flex-col"
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed right-0 top-0 h-full w-full sm:max-w-sm bg-surface shadow-m3-5 z-50 flex flex-col overflow-hidden"
+            style={{ maxWidth: '100vw', maxHeight: '100vh' }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b border-outline-variant">
-              <div className="flex items-center gap-3">
-                <ShoppingBag className="h-6 w-6 text-primary" />
-                <h2 className="md-typescale-headline-small text-on-surface">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-outline-variant flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+                <h2 className="md-typescale-headline-small text-on-surface truncate">
                   سلة التسوق
                 </h2>
-                <span className="px-2 py-1 bg-primary-container text-primary-on-container rounded-m3-sm md-typescale-label-small">
+                <span className="px-2 py-1 bg-primary-container text-primary-on-container rounded-m3-sm md-typescale-label-small flex-shrink-0">
                   {items.length}
                 </span>
               </div>
@@ -56,7 +57,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
             </div>
 
             {/* Cart Items */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3 pb-36">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3" style={{ paddingBottom: items.length > 0 ? '220px' : '0' }}>
               {items.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -201,7 +202,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
 
             {/* Footer (fixed inside panel) */}
             {items.length > 0 && (
-              <div className="absolute left-0 right-0 bottom-0 p-4 bg-surface-variant border-t border-outline-variant">
+              <div className="sticky bottom-0 left-0 right-0 p-3 sm:p-4 bg-surface border-t border-outline-variant mt-auto flex-shrink-0 shadow-lg">
                 {/* Total */}
                 <div className="flex items-center justify-between mb-3">
                   <span className="md-typescale-title-medium text-on-surface">
@@ -217,11 +218,12 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full md-filled-button py-4 shadow-m3-2 hover:shadow-m3-3 text-base"
+                    className="w-full md-filled-button py-3 sm:py-4 shadow-m3-2 hover:shadow-m3-3 text-sm sm:text-base"
+                    style={{ minHeight: '48px' }}
                   >
                     <span className="flex items-center justify-center gap-2">
                       <span>إتمام الطلب</span>
-                      <span className="material-symbols-rounded">
+                      <span className="material-symbols-rounded text-lg sm:text-xl">
                         arrow_back
                       </span>
                     </span>
@@ -233,7 +235,8 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full md-outlined-button mt-2 py-3 text-base"
+                    className="w-full md-outlined-button mt-2 py-2.5 sm:py-3 text-sm sm:text-base"
+                    style={{ minHeight: '44px' }}
                   >
                     متابعة التسوق
                   </motion.button>

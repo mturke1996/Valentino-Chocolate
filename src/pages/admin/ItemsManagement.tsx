@@ -514,11 +514,10 @@ export default function ItemsManagement() {
                     <div className="flex items-center gap-4">
                       <MaterialRipple>
                         <label
-                          className="flex items-center gap-2 px-6 py-3 rounded-full cursor-pointer transition-all"
+                          className="flex items-center gap-2 px-6 py-3 rounded-full cursor-pointer transition-all bg-surface-variant text-on-surface"
                           style={{
                             opacity: uploadingImages ? 0.7 : 1,
                           }}
-                          className="bg-surface-variant text-on-surface"
                         >
                           <span className="material-symbols-rounded text-xl">
                             upload

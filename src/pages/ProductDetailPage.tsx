@@ -261,16 +261,21 @@ export default function ProductDetailPage() {
           >
             {/* Title & Category */}
             <div>
-              <span className="md-typescale-label-large text-primary">
-                {product.category}
-              </span>
+              {product.category && 
+               product.category !== product.id && 
+               product.category !== "0" && 
+               !product.category.includes(product.id) && (
+                <span className="md-typescale-label-large text-primary">
+                  {product.category}
+                </span>
+              )}
               <h1 className="md-typescale-display-small text-on-background mt-2">
                 {product.nameAr}
               </h1>
             </div>
 
             {/* Rating */}
-            {product.rating && (
+            {product.rating && product.rating > 0 && (
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
                   {[...Array(5)].map((_, i) => (
@@ -285,7 +290,10 @@ export default function ProductDetailPage() {
                   ))}
                 </div>
                 <span className="md-typescale-body-medium text-on-surface-variant">
-                  {product.rating.toFixed(1)} ({product.reviewCount || 0} تقييم)
+                  {product.rating.toFixed(1)}
+                  {product.reviewCount && product.reviewCount > 0 && (
+                    <> ({product.reviewCount} تقييم)</>
+                  )}
                 </span>
               </div>
             )}

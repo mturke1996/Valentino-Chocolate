@@ -446,15 +446,16 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 className="text-center mt-12"
               >
-                <Link to="/products">
+                  <Link to="/products">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="md-filled-button px-8 py-4"
+                    className="md-filled-button px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base"
+                    style={{ minHeight: '48px' }}
                   >
                     <span className="flex items-center gap-2">
                       <span>عرض جميع المنتجات</span>
-                      <span className="material-symbols-rounded">
+                      <span className="material-symbols-rounded text-lg sm:text-xl">
                         arrow_back
                       </span>
                     </span>
@@ -514,12 +515,13 @@ export default function HomePage() {
                     setSelectedProductForReview(featuredProducts[0]);
                     setShowReviewModal(true);
                   }}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-full font-medium shadow-lg hover:shadow-xl transition-all"
+                  className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-primary text-on-primary rounded-full font-medium shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
                   style={{
                     borderRadius: "var(--md-sys-shape-corner-extra-large)",
+                    minHeight: '44px'
                   }}
                 >
-                  <span className="material-symbols-rounded">rate_review</span>
+                  <span className="material-symbols-rounded text-lg sm:text-xl">rate_review</span>
                   <span>أضف تقييمك</span>
                 </motion.button>
               </MaterialRipple>
@@ -706,7 +708,8 @@ export default function HomePage() {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={submittingMessage}
-                className="w-full bg-gradient-to-r from-primary to-primary-container hover:from-primary-container hover:to-primary text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-primary to-primary-container hover:from-primary-container hover:to-primary text-white py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ minHeight: '48px' }}
               >
                 {submittingMessage ? (
                   <>

@@ -7,9 +7,11 @@ import { useAuthStore } from "../store/authStore";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import toast from "react-hot-toast";
+import Cart from "./Cart";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const itemCount = useCartStore((state) => state.getItemCount());
@@ -99,25 +101,25 @@ export default function Navbar() {
               </motion.button>
 
               {/* Cart Button */}
-              <Link to="/cart">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="relative p-2 rounded-full hover:bg-surface-variant transition-colors ripple"
-                  aria-label="السلة"
-                >
-                  <ShoppingCart className="h-5 w-5 text-on-surface" />
-                  {itemCount > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -left-1 bg-error text-error-on w-5 h-5 rounded-full flex items-center justify-center md-typescale-label-small"
-                    >
-                      {itemCount}
-                    </motion.span>
-                  )}
-                </motion.button>
-              </Link>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsCartOpen(true)}
+                className="relative p-2 rounded-full hover:bg-surface-variant transition-colors ripple"
+                aria-label="السلة"
+              >
+                <ShoppingCart className="h-5 w-5 text-on-surface" />
+                {itemCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-0.5 -right-0.5 bg-error text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shadow-lg border-2 border-white"
+                    style={{ minWidth: '20px', fontSize: '11px' }}
+                  >
+                    {itemCount > 99 ? '99+' : itemCount}
+                  </motion.span>
+                )}
+              </motion.button>
 
               {/* User Menu */}
               {user ? (
@@ -236,6 +238,9 @@ export default function Navbar() {
 
       {/* Spacer to prevent content from hiding under fixed navbar */}
       <div className="h-16" />
+
+      {/* Cart Modal */}
+      <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
   );
 }

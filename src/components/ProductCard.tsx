@@ -22,9 +22,6 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [localRating, setLocalRating] = useState<number | null>(
     product.rating ?? null
   );
-  const [localReviewCount, setLocalReviewCount] = useState<number>(
-    product.reviewCount || 0
-  );
 
   useEffect(() => {
     let mounted = true;
@@ -42,7 +39,6 @@ export default function ProductCard({ product }: ProductCardProps) {
         const ratings = data.map((r: any) => r.rating || 0);
         const avg = ratings.reduce((s, v) => s + v, 0) / ratings.length;
         setLocalRating(avg);
-        setLocalReviewCount(ratings.length);
       } catch (err) {
         // ignore
       }
@@ -53,7 +49,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     return () => {
       mounted = false;
     };
-  }, [product.id]);
+  }, [product.id, localRating]);
 
   return (
     <motion.div
@@ -134,10 +130,15 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="p-4 space-y-3">
         {/* Category */}
         <div className="flex items-center justify-between">
-          <span className="md-typescale-label-small text-on-surface-variant">
-            {product.category}
-          </span>
-          {(localRating ?? product.rating) && (
+          {product.category && 
+           product.category !== product.id && 
+           product.category !== "0" && 
+           !product.category.includes(product.id) && (
+            <span className="md-typescale-label-small text-on-surface-variant">
+              {product.category}
+            </span>
+          )}
+          {((localRating ?? product.rating) && (localRating ?? product.rating)! > 0) && (
             <div className="flex items-center gap-1">
               <span className="material-symbols-rounded text-yellow-500 text-sm">
                 star
