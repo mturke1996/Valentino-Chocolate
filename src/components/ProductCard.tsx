@@ -128,27 +128,17 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Product Info */}
       <div className="p-4 space-y-3">
-        {/* Category */}
-        <div className="flex items-center justify-between">
-          {product.category && 
-           product.category !== product.id && 
-           product.category !== "0" && 
-           !product.category.includes(product.id) && (
-            <span className="md-typescale-label-small text-on-surface-variant">
-              {product.category}
+        {/* Rating Only - Category removed to avoid showing product ID */}
+        {((localRating ?? product.rating) && (localRating ?? product.rating)! > 0) && (
+          <div className="flex items-center justify-end gap-1">
+            <span className="material-symbols-rounded text-yellow-500 text-sm">
+              star
             </span>
-          )}
-          {((localRating ?? product.rating) && (localRating ?? product.rating)! > 0) && (
-            <div className="flex items-center gap-1">
-              <span className="material-symbols-rounded text-yellow-500 text-sm">
-                star
-              </span>
-              <span className="md-typescale-label-small text-on-surface-variant">
-                {(localRating ?? product.rating)!.toFixed(1)}
-              </span>
-            </div>
-          )}
-        </div>
+            <span className="md-typescale-label-small text-on-surface-variant">
+              {(localRating ?? product.rating)!.toFixed(1)}
+            </span>
+          </div>
+        )}
 
         {/* Product Name */}
         <Link to={`/product/${product.id}`}>
