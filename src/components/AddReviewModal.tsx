@@ -6,7 +6,7 @@ import { db } from "../firebase";
 import { Product } from "../types";
 import toast from "react-hot-toast";
 import { uploadMultipleToImgBB } from "../utils/imgbbUpload";
-import { notifyNewMessage } from "../utils/telegramNotifications";
+import { notifyNewReview } from "../utils/telegramNotifications";
 
 interface AddReviewModalProps {
   product: Product;
@@ -84,16 +84,11 @@ export default function AddReviewModal({
       await addDoc(collection(db, "reviews"), reviewData);
 
       // Send Telegram notification
-      await notifyNewMessage({
-        id: "",
-        name: formData.userName,
-        email: formData.userEmail,
-        phone: "",
-        message: `تقييم جديد للمنتج ${product.nameAr}: ${formData.comment}`,
-        subject: `تقييم ${formData.rating} نجوم`,
-        status: "new",
-        createdAt: serverTimestamp(),
-      } as any);
+      await notifyNewReview(
+        product.nameAr,
+        formData.rating,
+        formData.comment
+      );
 
       toast.success("تم إضافة التقييم بنجاح! سيتم مراجعته قريباً.");
       setFormData({

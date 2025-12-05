@@ -7,9 +7,18 @@ const getTelegramSettings = async () => {
     const settingsDoc = await getDoc(doc(db, 'settings', 'general'));
     if (settingsDoc.exists()) {
       const data = settingsDoc.data();
+      const token = data.telegramBotToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+      const enabled = data.telegramEnabled !== false;
+      
+      console.log('Telegram settings from DB:', { 
+        hasToken: !!token, 
+        enabled,
+        tokenLength: token?.length 
+      });
+      
       return {
-        token: data.telegramBotToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN,
-        enabled: data.telegramEnabled !== false,
+        token,
+        enabled,
       };
     }
   } catch (error) {
@@ -17,8 +26,11 @@ const getTelegramSettings = async () => {
   }
   
   // Fallback to env variables
+  const envToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+  console.log('Using env token:', { hasToken: !!envToken, tokenLength: envToken?.length });
+  
   return {
-    token: import.meta.env.VITE_TELEGRAM_BOT_TOKEN,
+    token: envToken,
     enabled: true,
   };
 };
@@ -32,12 +44,16 @@ const getEnabledChats = async (permission?: 'orders' | 'orderStatus' | 'messages
       ...doc.data(),
     })) as TelegramChat[];
 
+    console.log(`Total chats found: ${allChats.length}`);
+
     // Filter enabled chats
     let enabledChats = allChats.filter((chat) => chat.enabled);
+    console.log(`Enabled chats: ${enabledChats.length}`);
 
     // Filter by permission if specified
     if (permission) {
-      enabledChats = enabledChats.filter((chat) => chat.permissions[permission] === true);
+      enabledChats = enabledChats.filter((chat) => chat.permissions?.[permission] === true);
+      console.log(`Chats with permission '${permission}': ${enabledChats.length}`);
     }
 
     return enabledChats;
@@ -64,7 +80,12 @@ const sendTelegramMessage = async (message: string, chatId: string, token: strin
       }
     );
 
-    return response.ok;
+    const data = await response.json();
+    if (!response.ok) {
+      console.error('Telegram API error:', data);
+      return false;
+    }
+    return true;
   } catch (error) {
     console.error('Error sending Telegram message:', error);
     return false;
@@ -72,26 +93,43 @@ const sendTelegramMessage = async (message: string, chatId: string, token: strin
 };
 
 const sendToAllChats = async (message: string, permission?: 'orders' | 'orderStatus' | 'messages' | 'reviews' | 'contact'): Promise<boolean> => {
-  const settings = await getTelegramSettings();
-  
-  if (!settings.enabled || !settings.token) {
-    console.warn('Telegram notifications disabled or not configured');
+  try {
+    const settings = await getTelegramSettings();
+    
+    if (!settings.enabled || !settings.token) {
+      console.warn('Telegram notifications disabled or not configured', { enabled: settings.enabled, hasToken: !!settings.token });
+      return false;
+    }
+
+    const chats = await getEnabledChats(permission);
+    
+    if (chats.length === 0) {
+      console.warn(`No enabled chats found for permission: ${permission}`, { totalChats: chats.length });
+      return false;
+    }
+
+    console.log(`Sending Telegram notification to ${chats.length} chat(s) with permission: ${permission}`);
+
+    // Send to all eligible chats
+    const results = await Promise.all(
+      chats.map(async (chat) => {
+        const result = await sendTelegramMessage(message, chat.chatId, settings.token!);
+        if (!result) {
+          console.error(`Failed to send message to chat ${chat.chatId}`);
+        }
+        return result;
+      })
+    );
+
+    const success = results.some((result) => result === true);
+    if (!success) {
+      console.error('Failed to send Telegram notification to any chat');
+    }
+    return success;
+  } catch (error) {
+    console.error('Error in sendToAllChats:', error);
     return false;
   }
-
-  const chats = await getEnabledChats(permission);
-  
-  if (chats.length === 0) {
-    console.warn('No enabled chats found for this notification type');
-    return false;
-  }
-
-  // Send to all eligible chats
-  const results = await Promise.all(
-    chats.map((chat) => sendTelegramMessage(message, chat.chatId, settings.token!))
-  );
-
-  return results.some((result) => result === true);
 };
 
 export const notifyNewOrder = async (order: Order): Promise<boolean> => {
