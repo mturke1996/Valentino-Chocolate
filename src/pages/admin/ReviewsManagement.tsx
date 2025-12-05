@@ -44,10 +44,10 @@ export default function ReviewsManagement() {
       );
       const reviewsSnapshot = await getDocs(reviewsQuery);
       const reviewsData = await Promise.all(
-        reviewsSnapshot.docs.map(async (doc) => {
+        reviewsSnapshot.docs.map(async (reviewDoc) => {
           const reviewData = {
-            id: doc.id,
-            ...doc.data(),
+            id: reviewDoc.id,
+            ...reviewDoc.data(),
           } as Review;
           
           // Fetch product name

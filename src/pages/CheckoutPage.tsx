@@ -8,7 +8,7 @@ import { formatPrice } from "../utils/formatters";
 import { notifyNewOrder } from "../utils/telegramNotifications";
 import { ShoppingBag, Truck, CreditCard, CheckCircle, Tag, X } from "lucide-react";
 import toast from "react-hot-toast";
-import { SiteSettings, DiscountCode } from "../types";
+import { SiteSettings, DiscountCode, Order } from "../types";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -94,12 +94,12 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (code.minPurchase > 0 && subtotal < code.minPurchase) {
+    if ((code.minPurchase ?? 0) > 0 && subtotal < (code.minPurchase ?? 0)) {
       setDiscountError(`الحد الأدنى للشراء: ${code.minPurchase} د.ل`);
       return;
     }
 
-    if (code.usageLimit > 0 && (code.usedCount || 0) >= code.usageLimit) {
+    if ((code.usageLimit ?? 0) > 0 && (code.usedCount || 0) >= (code.usageLimit ?? 0)) {
       setDiscountError("تم استخدام كود الخصم بالكامل");
       return;
     }
@@ -193,10 +193,10 @@ export default function CheckoutPage() {
         deliveryFee: orderData.deliveryFee,
         discount: orderData.discount,
         total: orderData.total,
-        status: orderData.status,
+        status: "pending" as const,
         deliveryType: orderData.deliveryType,
         paymentMethod: orderData.paymentMethod,
-        paymentStatus: orderData.paymentStatus,
+        paymentStatus: "pending" as const,
         notes: orderData.notes,
         createdAt: orderData.createdAt,
         updatedAt: orderData.updatedAt,

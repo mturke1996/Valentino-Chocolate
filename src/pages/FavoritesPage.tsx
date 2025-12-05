@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Heart, ShoppingBag } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useFavoritesStore } from "../store/favoritesStore";
 import ProductCard from "../components/ProductCard";
 
 export default function FavoritesPage() {
-  const { items, removeFromFavorites, clearFavorites } = useFavoritesStore();
+  const { items, clearFavorites } = useFavoritesStore();
 
   if (items.length === 0) {
     return (
@@ -73,4 +73,5 @@ export default function FavoritesPage() {
     </div>
   );
 }
+
 

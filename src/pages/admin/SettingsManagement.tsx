@@ -523,8 +523,8 @@ export default function SettingsManagement() {
                     {code.discountType === "percentage"
                       ? `${code.discountValue}%`
                       : `${code.discountValue} د.ل`}
-                    {code.minPurchase > 0 && ` - الحد الأدنى: ${code.minPurchase} د.ل`}
-                    {code.usageLimit > 0 && ` - الاستخدام: ${code.usedCount || 0}/${code.usageLimit}`}
+                    {(code.minPurchase ?? 0) > 0 && ` - الحد الأدنى: ${code.minPurchase} د.ل`}
+                    {(code.usageLimit ?? 0) > 0 && ` - الاستخدام: ${code.usedCount || 0}/${code.usageLimit}`}
                   </div>
                 </div>
                 <motion.button

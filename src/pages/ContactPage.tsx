@@ -74,7 +74,7 @@ export default function ContactPage() {
         createdAt: serverTimestamp(),
       };
 
-      const docRef = await addDoc(collection(db, "messages"), messageData);
+      await addDoc(collection(db, "messages"), messageData);
 
       // Send Telegram notification
       await notifyContactMessage(
