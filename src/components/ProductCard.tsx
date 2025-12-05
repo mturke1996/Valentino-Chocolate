@@ -6,6 +6,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { formatPrice } from "../utils/formatters";
 import { useCartStore } from "../store/cartStore";
+import { useFavoritesStore } from "../store/favoritesStore";
 import { Link } from "react-router-dom";
 
 interface ProductCardProps {
@@ -14,6 +15,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addToCart);
+  const { addToFavorites, removeFromFavorites, isFavorite } = useFavoritesStore();
 
   const finalPrice = product.discount
     ? product.price * (1 - product.discount / 100)
@@ -140,10 +142,27 @@ export default function ProductCard({ product }: ProductCardProps) {
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-2 bg-surface rounded-full shadow-m3-2 hover:shadow-m3-3 ripple"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (isFavorite(product.id)) {
+                  removeFromFavorites(product.id);
+                } else {
+                  addToFavorites(product);
+                }
+              }}
+              className={`p-2 bg-surface rounded-full shadow-m3-2 hover:shadow-m3-3 ripple ${
+                isFavorite(product.id) ? "bg-primary-container" : ""
+              }`}
               aria-label="إضافة للمفضلة"
             >
-              <Heart className="h-4 w-4 text-error" />
+              <Heart
+                className={`h-4 w-4 ${
+                  isFavorite(product.id)
+                    ? "fill-primary text-primary"
+                    : "text-on-surface-variant"
+                }`}
+              />
             </motion.button>
             <Link to={`/product/${product.id}`}>
               <motion.button

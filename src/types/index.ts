@@ -140,11 +140,15 @@ export interface SiteSettings {
   facebook?: string;
   instagram?: string;
   twitter?: string;
+  youtube?: string;
+  tiktok?: string;
+  linkedin?: string;
   deliveryFee: number;
   freeDeliveryMinimum?: number;
   taxRate?: number;
   currency: string;
   currencyAr: string;
+  discountCodes?: DiscountCode[];
   openingHours?: string;
   openingHoursAr?: string;
   aboutUs?: string;
@@ -241,6 +245,23 @@ export interface Offer {
   validUntil: any;
   active: boolean;
   products?: string[]; // Product IDs (if specific to products)
+  createdAt: any;
+  updatedAt: any;
+}
+
+// Discount Code Types
+export interface DiscountCode {
+  id: string;
+  code: string;
+  discountType: 'percentage' | 'fixed'; // نسبة مئوية أو مبلغ ثابت
+  discountValue: number; // قيمة الخصم
+  minPurchase?: number; // الحد الأدنى للشراء
+  maxDiscount?: number; // الحد الأقصى للخصم (للنسبة المئوية)
+  validFrom: any;
+  validUntil: any;
+  active: boolean;
+  usageLimit?: number; // عدد مرات الاستخدام
+  usedCount?: number; // عدد مرات الاستخدام الحالية
   createdAt: any;
   updatedAt: any;
 }

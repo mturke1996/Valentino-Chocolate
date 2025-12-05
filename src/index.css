@@ -238,7 +238,7 @@ body {
 }
 
 .md-outlined-button:hover {
-  background-color: rgba(46, 125, 94, 0.08);
+  background-color: rgba(212, 165, 116, 0.08);
 }
 
 /* Material Button - Text */
@@ -258,7 +258,7 @@ body {
 }
 
 .md-text-button:hover {
-  background-color: rgba(46, 125, 94, 0.08);
+  background-color: rgba(212, 165, 116, 0.08);
 }
 
 /* Ripple Effect */
@@ -356,6 +356,16 @@ body {
   background: var(--md-sys-color-outline);
 }
 
+/* Hide Scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Smooth Transitions */
 * {
   transition-property: background-color, border-color, color, box-shadow;
@@ -416,8 +426,8 @@ body {
 .surface-tint {
   background-image: linear-gradient(
     to bottom,
-    rgba(46, 125, 94, 0.05),
-    rgba(46, 125, 94, 0.02)
+    rgba(212, 165, 116, 0.05),
+    rgba(212, 165, 116, 0.02)
   );
 }
 

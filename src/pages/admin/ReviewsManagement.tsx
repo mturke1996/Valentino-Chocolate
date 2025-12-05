@@ -8,9 +8,10 @@ import {
   doc,
   query,
   orderBy,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
-import { Review } from "../../types";
+import { Review, Product } from "../../types";
 import { formatDateTime } from "../../utils/formatters";
 import {
   Search,
@@ -19,11 +20,13 @@ import {
   CheckCircle,
   XCircle,
   Reply,
+  Package,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 
 export default function ReviewsManagement() {
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<(Review & { productName?: string; productNameAr?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
@@ -40,10 +43,36 @@ export default function ReviewsManagement() {
         orderBy("createdAt", "desc")
       );
       const reviewsSnapshot = await getDocs(reviewsQuery);
-      const reviewsData = reviewsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Review[];
+      const reviewsData = await Promise.all(
+        reviewsSnapshot.docs.map(async (doc) => {
+          const reviewData = {
+            id: doc.id,
+            ...doc.data(),
+          } as Review;
+          
+          // Fetch product name
+          let productName = "";
+          let productNameAr = "";
+          if (reviewData.productId) {
+            try {
+              const productDoc = await getDoc(doc(db, "products", reviewData.productId));
+              if (productDoc.exists()) {
+                const product = productDoc.data() as Product;
+                productName = product.name || "";
+                productNameAr = product.nameAr || "";
+              }
+            } catch (err) {
+              console.error("Error fetching product:", err);
+            }
+          }
+          
+          return {
+            ...reviewData,
+            productName,
+            productNameAr,
+          };
+        })
+      );
       setReviews(reviewsData);
     } catch (error) {
       console.error("Error fetching reviews:", error);
@@ -99,7 +128,8 @@ export default function ReviewsManagement() {
   const filteredReviews = reviews.filter(
     (review) =>
       review.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      review.comment.toLowerCase().includes(searchQuery.toLowerCase())
+      review.comment.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (review.productNameAr && review.productNameAr.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   if (loading) {
@@ -155,19 +185,44 @@ export default function ReviewsManagement() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-3">
+                  {/* Product Info */}
+                  {review.productNameAr && (
+                    <div className="flex items-center gap-2 p-3 bg-primary-container/30 rounded-m3 border-r-4 border-primary">
+                      <Package className="h-5 w-5 text-primary" />
+                      <div className="flex-1">
+                        <p className="md-typescale-label-small text-on-surface-variant mb-1">
+                          تقييم لمنتج:
+                        </p>
+                        <Link
+                          to={`/product/${review.productId}`}
+                          className="md-typescale-title-medium text-primary hover:underline"
+                        >
+                          {review.productNameAr}
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-surface-variant rounded-full flex items-center justify-center">
                       <span className="md-typescale-title-medium text-on-surface">
                         {review.userName.charAt(0)}
                       </span>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="md-typescale-title-medium text-on-surface">
                           {review.userName}
                         </h3>
+                        <span className={`px-2 py-1 rounded-m3-sm md-typescale-label-small ${
+                          review.verified
+                            ? "bg-primary-container text-primary"
+                            : "bg-surface-variant text-on-surface-variant"
+                        }`}>
+                          {review.verified ? "✓ تم التحقق" : "⏳ في الانتظار"}
+                        </span>
                         {review.verified && (
-                          <CheckCircle className="h-5 w-5 text-on-surface" />
+                          <CheckCircle className="h-5 w-5 text-primary" />
                         )}
                       </div>
                       <p className="md-typescale-body-small text-on-surface-variant">

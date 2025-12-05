@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Menu, X, User, LogOut, Search } from "lucide-react";
+import { ShoppingCart, Menu, X, User, LogOut, Search, Heart } from "lucide-react";
 import { useCartStore } from "../store/cartStore";
 import { useAuthStore } from "../store/authStore";
+import { useFavoritesStore } from "../store/favoritesStore";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import toast from "react-hot-toast";
@@ -15,6 +16,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const itemCount = useCartStore((state) => state.getItemCount());
+  const favoritesCount = useFavoritesStore((state) => state.getFavoritesCount());
   const { user, isAdmin, logout } = useAuthStore();
 
   useEffect(() => {
@@ -99,6 +101,28 @@ export default function Navbar() {
               >
                 <Search className="h-5 w-5 text-on-surface" />
               </motion.button>
+
+              {/* Favorites Button */}
+              <Link to="/favorites">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative p-2 rounded-full hover:bg-surface-variant transition-colors ripple"
+                  aria-label="المفضلة"
+                >
+                  <Heart className="h-5 w-5 text-on-surface" />
+                  {favoritesCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-0.5 -right-0.5 bg-primary text-primary-on w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shadow-lg border-2 border-white"
+                      style={{ minWidth: '20px', fontSize: '11px' }}
+                    >
+                      {favoritesCount > 99 ? '99+' : favoritesCount}
+                    </motion.span>
+                  )}
+                </motion.button>
+              </Link>
 
               {/* Cart Button */}
               <motion.button

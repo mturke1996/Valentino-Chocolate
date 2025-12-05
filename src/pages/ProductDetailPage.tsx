@@ -14,6 +14,7 @@ import { db } from "../firebase";
 import { Product } from "../types";
 import { formatPrice } from "../utils/formatters";
 import { useCartStore } from "../store/cartStore";
+import { useFavoritesStore } from "../store/favoritesStore";
 import {
   ShoppingCart,
   Heart,
@@ -54,6 +55,12 @@ export default function ProductDetailPage() {
   const [productRating, setProductRating] = useState<number | null>(null);
   const [productReviewCount, setProductReviewCount] = useState<number>(0);
   const addToCart = useCartStore((state) => state.addToCart);
+  const { addToFavorites, removeFromFavorites, isFavorite } = useFavoritesStore();
+
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [id]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -194,11 +201,7 @@ export default function ProductDetailPage() {
     <div className="min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <motion.nav
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex items-center gap-2 md-typescale-body-small text-on-surface-variant"
-        >
+        <nav className="mb-8 flex items-center gap-2 md-typescale-body-small text-on-surface-variant">
           <Link to="/" className="hover:text-primary">
             الرئيسية
           </Link>
@@ -208,97 +211,125 @@ export default function ProductDetailPage() {
           </Link>
           <span>/</span>
           <span className="text-on-surface">{product.nameAr}</span>
-        </motion.nav>
+        </nav>
 
         {/* Product Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
           {/* Images Gallery */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-4"
-          >
-            {/* Main Image */}
-            <div className="relative aspect-square rounded-m3 overflow-hidden bg-surface-variant md-elevated-card">
-              <motion.img
-                key={selectedImage}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                src={product.images[selectedImage]}
-                alt={product.nameAr}
-                className="w-full h-full object-cover cursor-zoom-in"
-                onClick={() => setLightboxOpen(true)}
-              />
+          <div className="space-y-4">
+            {/* Main Image with Carousel */}
+            <div className="relative aspect-square rounded-m3 overflow-hidden bg-surface-variant md-elevated-card group">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={selectedImage}
+                  initial={{ opacity: 0, scale: 1.1 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4, ease: "easeInOut" }}
+                  src={product.images[selectedImage]}
+                  alt={product.nameAr}
+                  className="w-full h-full object-cover cursor-zoom-in transition-transform duration-300 group-hover:scale-105"
+                  onClick={() => setLightboxOpen(true)}
+                />
+              </AnimatePresence>
 
-              {/* Navigation Arrows */}
+              {/* Navigation Arrows - Show on hover */}
               {product.images.length > 1 && (
                 <>
                   <motion.button
-                    whileHover={{ scale: 1.1 }}
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1, scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={prevImage}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-surface/90 backdrop-blur-sm rounded-full shadow-m3-2 ripple"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevImage();
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-primary/90 backdrop-blur-md rounded-full shadow-m3-3 text-primary-on opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 ripple"
                   >
-                    <ChevronRight className="h-6 w-6 text-on-surface" />
+                    <ChevronRight className="h-6 w-6" />
                   </motion.button>
                   <motion.button
-                    whileHover={{ scale: 1.1 }}
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1, scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={nextImage}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-surface/90 backdrop-blur-sm rounded-full shadow-m3-2 ripple"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextImage();
+                    }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-primary/90 backdrop-blur-md rounded-full shadow-m3-3 text-primary-on opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 ripple"
                   >
-                    <ChevronLeft className="h-6 w-6 text-on-surface" />
+                    <ChevronLeft className="h-6 w-6" />
                   </motion.button>
+
+                  {/* Image Counter */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full md-typescale-label-small text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    {selectedImage + 1} / {product.images.length}
+                  </div>
                 </>
               )}
 
               {/* Badges */}
-              <div className="absolute top-4 right-4 flex flex-col gap-2">
+              <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
                 {product.discount && (
-                  <div className="bg-error text-error-on px-3 py-1 rounded-m3-sm md-typescale-label-small shadow-m3-2">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-error text-error-on px-3 py-1 rounded-m3-sm md-typescale-label-small shadow-m3-2"
+                  >
                     خصم {product.discount}%
-                  </div>
+                  </motion.div>
                 )}
                 {product.featured && (
-                  <div className="bg-secondary text-secondary-on px-3 py-1 rounded-m3-sm md-typescale-label-small shadow-m3-2">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-secondary text-secondary-on px-3 py-1 rounded-m3-sm md-typescale-label-small shadow-m3-2"
+                  >
                     مميز
-                  </div>
+                  </motion.div>
                 )}
               </div>
             </div>
 
-            {/* Thumbnails */}
+            {/* Thumbnails Carousel */}
             {product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {product.images.map((image, index) => (
-                  <motion.button
-                    key={index}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedImage(index)}
-                    className={`aspect-square rounded-m3-sm overflow-hidden ${
-                      selectedImage === index
-                        ? "ring-2 ring-primary"
-                        : "opacity-60 hover:opacity-100"
-                    } transition-all`}
-                  >
-                    <img
-                      src={image}
-                      alt={`${product.nameAr} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </motion.button>
-                ))}
+              <div className="relative">
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  {product.images.map((image, index) => (
+                    <motion.button
+                      key={index}
+                      whileHover={{ scale: 1.05, y: -4 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setSelectedImage(index)}
+                      className={`flex-shrink-0 aspect-square w-20 rounded-m3-sm overflow-hidden border-2 transition-all duration-300 ${
+                        selectedImage === index
+                          ? "border-primary ring-2 ring-primary/50 shadow-m3-2 scale-105"
+                          : "border-outline-variant hover:border-primary/50 opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      <img
+                        src={image}
+                        alt={`${product.nameAr} ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {selectedImage === index && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="absolute inset-0 bg-primary/20"
+                        />
+                      )}
+                    </motion.button>
+                  ))}
+                </div>
               </div>
             )}
-          </motion.div>
+          </div>
 
           {/* Product Info */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
-          >
+          <div className="space-y-6">
             {/* Title & Category */}
             <div>
               {product.category && 
@@ -438,10 +469,23 @@ export default function ProductDetailPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="md-outlined-button"
+                onClick={() => {
+                  if (isFavorite(product.id)) {
+                    removeFromFavorites(product.id);
+                  } else {
+                    addToFavorites(product);
+                  }
+                }}
+                className={`md-outlined-button ${
+                  isFavorite(product.id) ? "bg-primary-container text-primary border-primary" : ""
+                }`}
               >
-                <Heart className="h-5 w-5 ml-2" />
-                مفضلة
+                <Heart
+                  className={`h-5 w-5 ml-2 ${
+                    isFavorite(product.id) ? "fill-primary text-primary" : ""
+                  }`}
+                />
+                {isFavorite(product.id) ? "إزالة من المفضلة" : "إضافة للمفضلة"}
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -479,7 +523,7 @@ export default function ProductDetailPage() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Related Products */}

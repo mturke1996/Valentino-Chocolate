@@ -9,10 +9,10 @@ export default {
       colors: {
         // Valentino Chocolate Color Scheme (Inspired by logo)
         primary: {
-          DEFAULT: '#1A4D4D',  // Dark teal/green from logo
-          container: '#2A6666',
-          on: '#F4E4C1',  // Gold/cream
-          'on-container': '#FFFFFF',
+          DEFAULT: '#D4A574',  // Creamy/Golden from logo (same as CSS variables)
+          container: '#F5E6D3',
+          on: '#000000',  // Black text on golden background
+          'on-container': '#8B6F47',
         },
         secondary: {
           DEFAULT: '#D4AF37',  // Rich gold

@@ -3,10 +3,29 @@ import { Link, useNavigate } from "react-router-dom";
 import { ShoppingBag, Plus, Minus, Trash2, ArrowLeft } from "lucide-react";
 import { useCartStore } from "../store/cartStore";
 import { formatPrice } from "../utils/formatters";
+import { useState, useEffect } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
 export default function CartPage() {
   const navigate = useNavigate();
   const { items, removeFromCart, updateQuantity, getTotal, clearCart } = useCartStore();
+  const [deliveryFee, setDeliveryFee] = useState(0);
+
+  useEffect(() => {
+    const fetchDeliveryFee = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(db, "settings", "general"));
+        if (settingsDoc.exists()) {
+          const data = settingsDoc.data();
+          setDeliveryFee(data.deliveryFee || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching delivery fee:", error);
+      }
+    };
+    fetchDeliveryFee();
+  }, []);
 
   if (items.length === 0) {
     return (
@@ -185,7 +204,7 @@ export default function CartPage() {
                     رسوم التوصيل:
                   </span>
                   <span className="md-typescale-body-medium text-on-surface">
-                    سيتم حسابها لاحقاً
+                    {formatPrice(deliveryFee)}
                   </span>
                 </div>
                 <div className="border-t border-outline-variant pt-4 flex justify-between">
@@ -193,7 +212,7 @@ export default function CartPage() {
                     الإجمالي:
                   </span>
                   <span className="md-typescale-title-medium text-primary">
-                    {formatPrice(getTotal())}
+                    {formatPrice(getTotal() + deliveryFee)}
                   </span>
                 </div>
               </div>

@@ -1,18 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useCartStore } from "../store/cartStore";
 import { formatPrice } from "../utils/formatters";
 import { notifyNewOrder } from "../utils/telegramNotifications";
-import { ShoppingBag, Truck, CreditCard, CheckCircle } from "lucide-react";
+import { ShoppingBag, Truck, CreditCard, CheckCircle, Tag, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { SiteSettings, DiscountCode } from "../types";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, getTotal, clearCart } = useCartStore();
   const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState<Partial<SiteSettings>>({});
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<DiscountCode | null>(null);
+  const [discountError, setDiscountError] = useState("");
   const [formData, setFormData] = useState({
     customerName: "",
     customerPhone: "",
@@ -23,10 +29,33 @@ export default function CheckoutPage() {
     notes: "",
   });
 
-  // Delivery fee removed per request (show only subtotal/total)
-  const deliveryFee = 0;
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(db, "settings", "general"));
+        if (settingsDoc.exists()) {
+          const data = settingsDoc.data();
+          setSettings(data);
+          setDeliveryFee(data.deliveryFee || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   const subtotal = getTotal();
-  const total = subtotal; // delivery fee hidden/removed
+  const discountAmount = appliedDiscount
+    ? appliedDiscount.discountType === "percentage"
+      ? Math.min(
+          (subtotal * appliedDiscount.discountValue) / 100,
+          appliedDiscount.maxDiscount || Infinity
+        )
+      : appliedDiscount.discountValue
+    : 0;
+  const delivery = formData.deliveryType === "delivery" ? deliveryFee : 0;
+  const total = subtotal - discountAmount + delivery;
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -37,6 +66,52 @@ export default function CheckoutPage() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleApplyDiscount = () => {
+    setDiscountError("");
+    if (!discountCode.trim()) {
+      setDiscountError("يرجى إدخال كود الخصم");
+      return;
+    }
+
+    const codes = settings.discountCodes || [];
+    const code = codes.find(
+      (c) => c.code.toUpperCase() === discountCode.toUpperCase() && c.active
+    );
+
+    if (!code) {
+      setDiscountError("كود الخصم غير صحيح أو غير نشط");
+      return;
+    }
+
+    const now = new Date();
+    const validFrom = code.validFrom?.toDate ? code.validFrom.toDate() : new Date(code.validFrom);
+    const validUntil = code.validUntil?.toDate ? code.validUntil.toDate() : new Date(code.validUntil);
+
+    if (now < validFrom || now > validUntil) {
+      setDiscountError("كود الخصم منتهي الصلاحية");
+      return;
+    }
+
+    if (code.minPurchase > 0 && subtotal < code.minPurchase) {
+      setDiscountError(`الحد الأدنى للشراء: ${code.minPurchase} د.ل`);
+      return;
+    }
+
+    if (code.usageLimit > 0 && (code.usedCount || 0) >= code.usageLimit) {
+      setDiscountError("تم استخدام كود الخصم بالكامل");
+      return;
+    }
+
+    setAppliedDiscount(code);
+    toast.success("تم تطبيق كود الخصم بنجاح");
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode("");
+    setDiscountError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,8 +169,8 @@ export default function CheckoutPage() {
               : item.product.price) * item.quantity,
         })),
         subtotal,
-        deliveryFee,
-        discount: 0,
+        deliveryFee: delivery,
+        discount: discountAmount,
         total,
         status: "pending",
         paymentStatus: "pending",
@@ -105,11 +180,40 @@ export default function CheckoutPage() {
 
       const docRef = await addDoc(collection(db, "orders"), orderData);
 
-      // Send Telegram notification (don't wait for it, just fire and forget)
-      notifyNewOrder({ id: docRef.id, ...orderData } as any).catch((err) => {
-        console.error("Telegram notification error:", err);
-        // Don't show error to user, just log it
-      });
+      // Send Telegram notification
+      const orderForNotification: Order = {
+        id: docRef.id,
+        orderNumber: orderData.orderNumber,
+        customerName: orderData.customerName,
+        customerPhone: orderData.customerPhone,
+        customerEmail: orderData.customerEmail,
+        customerAddress: orderData.customerAddress,
+        items: orderData.items,
+        subtotal: orderData.subtotal,
+        deliveryFee: orderData.deliveryFee,
+        discount: orderData.discount,
+        total: orderData.total,
+        status: orderData.status,
+        deliveryType: orderData.deliveryType,
+        paymentMethod: orderData.paymentMethod,
+        paymentStatus: orderData.paymentStatus,
+        notes: orderData.notes,
+        createdAt: orderData.createdAt,
+        updatedAt: orderData.updatedAt,
+      };
+
+      // Send notification and log result
+      notifyNewOrder(orderForNotification)
+        .then((success) => {
+          if (success) {
+            console.log("Telegram notification sent successfully");
+          } else {
+            console.warn("Telegram notification failed - check bot configuration");
+          }
+        })
+        .catch((err) => {
+          console.error("Telegram notification error:", err);
+        });
 
       clearCart();
       
@@ -148,7 +252,7 @@ export default function CheckoutPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/products")}
-            className="md-filled-button"
+            className="md-filled-button py-4 shadow-m3-2 hover:shadow-m3-3"
           >
             تصفح المنتجات
           </motion.button>
@@ -250,7 +354,7 @@ export default function CheckoutPage() {
                       value: "delivery",
                       label: "توصيل إلى العنوان",
                       icon: "🚚",
-                      desc: "رسوم التوصيل: 50 د.ل",
+                      desc: `رسوم التوصيل: ${deliveryFee} د.ل`,
                     },
                     {
                       value: "pickup",
@@ -261,10 +365,10 @@ export default function CheckoutPage() {
                   ].map((method) => (
                     <label
                       key={method.value}
-                      className={`flex items-start gap-3 p-4 rounded-m3 border-2 cursor-pointer transition-all ${
+                      className={`flex items-start gap-3 p-4 rounded-m3 cursor-pointer transition-all ${
                         formData.deliveryType === method.value
-                          ? "border-primary bg-primary-container"
-                          : "border-outline hover:border-outline-variant"
+                          ? "bg-primary text-primary-on shadow-m3-2"
+                          : "bg-surface border-2 border-outline hover:border-primary/50"
                       }`}
                     >
                       <input
@@ -277,15 +381,19 @@ export default function CheckoutPage() {
                       />
                       <span className="text-2xl">{method.icon}</span>
                       <div className="flex-1">
-                        <span className="md-typescale-body-large text-on-surface block">
+                        <span className={`md-typescale-body-large block ${
+                          formData.deliveryType === method.value ? "text-primary-on font-semibold" : "text-on-surface"
+                        }`}>
                           {method.label}
                         </span>
-                        <span className="md-typescale-body-small text-on-surface-variant">
+                        <span className={`md-typescale-body-small ${
+                          formData.deliveryType === method.value ? "text-primary-on/80" : "text-on-surface-variant"
+                        }`}>
                           {method.desc}
                         </span>
                       </div>
                       {formData.deliveryType === method.value && (
-                        <CheckCircle className="h-5 w-5 text-primary" />
+                        <CheckCircle className="h-5 w-5 text-primary-on" />
                       )}
                     </label>
                   ))}
@@ -306,6 +414,61 @@ export default function CheckoutPage() {
                       placeholder="الشارع، المنطقة، المدينة، الرمز البريدي"
                     />
                   </div>
+                )}
+              </div>
+
+              {/* Discount Code */}
+              <div className="md-elevated-card p-6 space-y-4">
+                <h3 className="md-typescale-title-large text-on-surface mb-4 flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-primary" />
+                  كود الخصم
+                </h3>
+
+                {appliedDiscount ? (
+                  <div className="p-4 bg-primary-container rounded-m3 flex items-center justify-between">
+                    <div>
+                      <span className="md-typescale-title-medium text-primary font-bold">
+                        {appliedDiscount.code}
+                      </span>
+                      <span className="md-typescale-body-medium text-on-surface-variant mr-2">
+                        - {appliedDiscount.discountType === "percentage" 
+                          ? `${appliedDiscount.discountValue}%` 
+                          : `${appliedDiscount.discountValue} د.ل`}
+                      </span>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={handleRemoveDiscount}
+                      className="p-1 text-error hover:bg-error-container rounded-full transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </motion.button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={discountCode}
+                      onChange={(e) => {
+                        setDiscountCode(e.target.value.toUpperCase());
+                        setDiscountError("");
+                      }}
+                      placeholder="أدخل كود الخصم"
+                      className="flex-1 px-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+                    />
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleApplyDiscount}
+                      className="md-filled-button px-6 py-3 shadow-m3-2 hover:shadow-m3-3"
+                    >
+                      تطبيق
+                    </motion.button>
+                  </div>
+                )}
+                {discountError && (
+                  <p className="md-typescale-body-small text-error">{discountError}</p>
                 )}
 
                 {formData.deliveryType === "pickup" && (
@@ -335,10 +498,10 @@ export default function CheckoutPage() {
                   ].map((method) => (
                     <label
                       key={method.value}
-                      className={`flex items-center gap-3 p-4 rounded-m3 border-2 cursor-pointer transition-all ${
+                      className={`flex items-center gap-3 p-4 rounded-m3 cursor-pointer transition-all ${
                         formData.paymentMethod === method.value
-                          ? "border-primary bg-primary-container"
-                          : "border-outline hover:border-outline-variant"
+                          ? "bg-primary text-primary-on shadow-m3-2"
+                          : "bg-surface border-2 border-outline hover:border-primary/50"
                       }`}
                     >
                       <input
@@ -350,11 +513,13 @@ export default function CheckoutPage() {
                         className="sr-only"
                       />
                       <span className="text-2xl">{method.icon}</span>
-                      <span className="md-typescale-body-large text-on-surface">
+                      <span className={`md-typescale-body-large ${
+                        formData.paymentMethod === method.value ? "text-primary-on font-semibold" : "text-on-surface"
+                      }`}>
                         {method.label}
                       </span>
                       {formData.paymentMethod === method.value && (
-                        <CheckCircle className="h-5 w-5 text-primary mr-auto" />
+                        <CheckCircle className="h-5 w-5 text-primary-on mr-auto" />
                       )}
                     </label>
                   ))}
@@ -424,7 +589,18 @@ export default function CheckoutPage() {
                   <span>المجموع الفرعي:</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
-                {/* Delivery fee hidden - showing only subtotal and total */}
+                {appliedDiscount && (
+                  <div className="flex justify-between md-typescale-body-medium text-on-surface">
+                    <span className="text-primary">الخصم ({appliedDiscount.code}):</span>
+                    <span className="text-primary">-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
+                {formData.deliveryType === "delivery" && (
+                  <div className="flex justify-between md-typescale-body-medium text-on-surface">
+                    <span>رسوم التوصيل:</span>
+                    <span>{formatPrice(deliveryFee)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between md-typescale-title-large text-primary pt-2 border-t border-outline-variant">
                   <span>الإجمالي:</span>
                   <span>{formatPrice(total)}</span>
