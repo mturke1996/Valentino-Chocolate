@@ -65,14 +65,20 @@ function App() {
     >
       <Toaster
         position="top-center"
+        containerStyle={{
+          top: '20px',
+          zIndex: 9999,
+        }}
         toastOptions={{
-          duration: 3000,
+          duration: 4000,
           style: {
             background: "var(--md-sys-color-surface)",
             color: "var(--md-sys-color-on-surface)",
             borderRadius: "var(--md-sys-shape-corner-medium)",
             padding: "16px",
             fontFamily: "Cairo, sans-serif",
+            boxShadow: "var(--md-sys-elevation-3)",
+            maxWidth: "90vw",
           },
           success: {
             iconTheme: {

@@ -24,6 +24,8 @@ export default function TelegramManagement() {
   const [fetchingChatId, setFetchingChatId] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
   const [editingChat, setEditingChat] = useState<TelegramChat | null>(null);
+  const [testMessageType, setTestMessageType] = useState<string>("simple");
+  const [testingMessage, setTestingMessage] = useState(false);
   const [botStatus, setBotStatus] = useState<{
     connected: boolean;
     message?: string;
@@ -311,10 +313,11 @@ export default function TelegramManagement() {
         }
       );
 
-      if (response.ok) {
+      const data = await response.json();
+      if (response.ok && data.ok) {
         toast.success("✅ تم إرسال رسالة الاختبار بنجاح!");
       } else {
-        const data = await response.json();
+        console.error("Telegram API error:", data);
         toast.error(data.description || "فشل إرسال الرسالة");
       }
     } catch (error) {
@@ -322,6 +325,153 @@ export default function TelegramManagement() {
       toast.error("حدث خطأ أثناء اختبار البوت");
     } finally {
       setTestingBot(false);
+    }
+  };
+
+  const testNotificationMessage = async () => {
+    if (!settings.telegramBotToken) {
+      toast.error("يرجى إدخال Bot Token أولاً");
+      return;
+    }
+
+    const enabledChats = chats.filter((c) => c.enabled);
+    if (enabledChats.length === 0) {
+      toast.error("يرجى إضافة Chat ID مفعل على الأقل");
+      return;
+    }
+
+    setTestingMessage(true);
+    try {
+      let message = "";
+      let requiredPermission: 'orders' | 'orderStatus' | 'messages' | 'reviews' | 'contact' | undefined = undefined;
+
+      switch (testMessageType) {
+        case "simple":
+          message = "🧪 <b>اختبار بسيط</b>\n\nهذه رسالة اختبار من لوحة التحكم! ✅";
+          break;
+        case "order":
+          message = `🍫 <b>طلب جديد!</b>
+
+📋 رقم الطلب: <code>TEST-001</code>
+👤 العميل: عميل تجريبي
+📱 الهاتف: 0940000000
+📍 العنوان: عنوان تجريبي
+
+🛍️ <b>المنتجات:</b>
+• منتج تجريبي x1 - 100.00 د.ل
+
+💰 المجموع الفرعي: 100.00 د.ل
+🚚 رسوم التوصيل: 0.00 د.ل
+💸 الخصم: 0.00 د.ل
+💵 <b>الإجمالي: 100.00 د.ل</b>
+🏪 استلام من المتجر
+
+💳 طريقة الدفع: كاش`;
+          requiredPermission = "orders";
+          break;
+        case "orderStatus":
+          message = `📦 <b>تحديث حالة الطلب</b>
+
+📋 رقم الطلب: <code>TEST-001</code>
+👤 العميل: عميل تجريبي
+📱 الهاتف: 0940000000
+
+✅ الحالة الجديدة: <b>تم تأكيد الطلب</b>`;
+          requiredPermission = "orderStatus";
+          break;
+        case "review":
+          message = `⭐ <b>تقييم جديد!</b>
+
+🍫 المنتج: منتج تجريبي
+⭐ التقييم: 5/5
+💬 التعليق: هذا تقييم تجريبي للاختبار`;
+          requiredPermission = "reviews";
+          break;
+        case "message":
+          message = `📨 <b>رسالة جديدة!</b>
+
+👤 الاسم: عميل تجريبي
+📧 البريد: test@example.com
+📱 الهاتف: 0940000000
+
+💬 <b>الرسالة:</b>
+هذه رسالة تجريبية للاختبار`;
+          requiredPermission = "messages";
+          break;
+        case "contact":
+          message = `📧 <b>رسالة من التواصل معنا</b>
+
+👤 الاسم: عميل تجريبي
+📧 البريد: test@example.com
+📱 الهاتف: 0940000000
+
+💬 <b>الرسالة:</b>
+هذه رسالة تجريبية من نموذج التواصل`;
+          requiredPermission = "contact";
+          break;
+        default:
+          message = "🧪 رسالة اختبار";
+      }
+
+      // Get chats with required permission
+      const targetChats = requiredPermission
+        ? enabledChats.filter((chat) => chat.permissions?.[requiredPermission] === true)
+        : enabledChats;
+
+      if (targetChats.length === 0) {
+        toast.error(`لا توجد Chat IDs مفعلة مع صلاحية ${requiredPermission || "عامة"}`);
+        return;
+      }
+
+      // Send to all eligible chats
+      const results = await Promise.all(
+        targetChats.map(async (chat) => {
+          try {
+            const response = await fetch(
+              `https://api.telegram.org/bot${settings.telegramBotToken}/sendMessage`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  chat_id: chat.chatId,
+                  text: message,
+                  parse_mode: "HTML",
+                }),
+              }
+            );
+
+            const data = await response.json();
+            if (response.ok && data.ok) {
+              return { success: true, chatId: chat.chatId, name: chat.name };
+            } else {
+              console.error(`Failed to send to ${chat.chatId}:`, data);
+              return { success: false, chatId: chat.chatId, name: chat.name, error: data.description };
+            }
+          } catch (error) {
+            console.error(`Error sending to ${chat.chatId}:`, error);
+            return { success: false, chatId: chat.chatId, name: chat.name, error: String(error) };
+          }
+        })
+      );
+
+      const successCount = results.filter((r) => r.success).length;
+      const failCount = results.length - successCount;
+
+      if (successCount > 0) {
+        toast.success(`✅ تم إرسال الرسالة إلى ${successCount} من ${results.length} Chat ID بنجاح!`);
+      }
+      if (failCount > 0) {
+        const failedChats = results.filter((r) => !r.success);
+        console.error("Failed chats:", failedChats);
+        toast.error(`❌ فشل إرسال الرسالة إلى ${failCount} Chat ID. تحقق من Console للتفاصيل.`);
+      }
+    } catch (error) {
+      console.error("Error testing notification:", error);
+      toast.error("حدث خطأ أثناء اختبار الإشعار");
+    } finally {
+      setTestingMessage(false);
     }
   };
 
@@ -549,6 +699,81 @@ export default function TelegramManagement() {
             </p>
           </div>
         )}
+      </motion.div>
+
+      {/* Test Notifications Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-surface border border-outline-variant rounded-2xl p-4 sm:p-6 space-y-4"
+        style={{ borderRadius: "var(--md-sys-shape-corner-large)" }}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-100 text-blue-700">
+            <span className="material-symbols-rounded text-2xl">send</span>
+          </div>
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-on-surface">
+              تجربة إرسال الرسائل
+            </h3>
+            <p className="text-xs text-on-surface-variant">
+              اختبر إرسال أنواع مختلفة من الإشعارات
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-on-surface mb-2">
+              نوع الرسالة
+            </label>
+            <select
+              value={testMessageType}
+              onChange={(e) => setTestMessageType(e.target.value)}
+              className="w-full px-4 py-2.5 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-blue-500 focus:border-2 text-sm transition-all"
+              style={{
+                borderRadius: "var(--md-sys-shape-corner-extra-large)",
+              }}
+            >
+              <option value="simple">اختبار بسيط</option>
+              <option value="order">طلب جديد</option>
+              <option value="orderStatus">تحديث حالة الطلب</option>
+              <option value="review">تقييم جديد</option>
+              <option value="message">رسالة جديدة</option>
+              <option value="contact">رسالة من التواصل</option>
+            </select>
+          </div>
+
+          <MaterialRipple>
+            <button
+              onClick={testNotificationMessage}
+              disabled={testingMessage || !settings.telegramBotToken || chats.filter((c) => c.enabled).length === 0}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl"
+              style={{
+                borderRadius: "var(--md-sys-shape-corner-extra-large)",
+              }}
+            >
+              {testingMessage ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>جاري الإرسال...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-rounded text-lg">send</span>
+                  <span>إرسال رسالة تجريبية</span>
+                </>
+              )}
+            </button>
+          </MaterialRipple>
+
+          <div className="p-3 bg-surface-variant rounded-lg">
+            <p className="text-xs text-on-surface-variant">
+              <span className="font-medium">ملاحظة:</span> سيتم إرسال الرسالة إلى جميع Chat IDs المفعلة التي لديها الصلاحية المطلوبة.
+            </p>
+          </div>
+        </div>
       </motion.div>
 
       {/* Chat IDs Section */}

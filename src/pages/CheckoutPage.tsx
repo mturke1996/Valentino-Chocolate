@@ -47,6 +47,22 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Validate required fields
+    if (!formData.customerName.trim()) {
+      toast.error("يرجى إدخال الاسم الكامل");
+      return;
+    }
+
+    if (!formData.customerPhone.trim()) {
+      toast.error("يرجى إدخال رقم الهاتف");
+      return;
+    }
+
+    if (formData.deliveryType === "delivery" && !formData.customerAddress.trim()) {
+      toast.error("يرجى إدخال العنوان");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -89,15 +105,27 @@ export default function CheckoutPage() {
 
       const docRef = await addDoc(collection(db, "orders"), orderData);
 
-      // Send Telegram notification
-      await notifyNewOrder({ id: docRef.id, ...orderData } as any);
+      // Send Telegram notification (don't wait for it, just fire and forget)
+      notifyNewOrder({ id: docRef.id, ...orderData } as any).catch((err) => {
+        console.error("Telegram notification error:", err);
+        // Don't show error to user, just log it
+      });
 
       clearCart();
-      toast.success("تم إرسال طلبك بنجاح!");
-      navigate("/order-success", { state: { orderNumber } });
-    } catch (error) {
+      
+      // Show success message
+      toast.success("تم إرسال طلبك بنجاح! رقم الطلب: " + orderNumber, {
+        duration: 4000,
+        position: 'top-center',
+      });
+      
+      // Navigate to home after a short delay to show success message
+      setTimeout(() => {
+        navigate("/", { replace: true });
+      }, 2000);
+    } catch (error: any) {
       console.error("Error creating order:", error);
-      toast.error("حدث خطأ أثناء إنشاء الطلب");
+      toast.error(error?.message || "حدث خطأ أثناء إنشاء الطلب. يرجى المحاولة مرة أخرى.");
     } finally {
       setLoading(false);
     }
@@ -130,7 +158,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-8 bg-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
