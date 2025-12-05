@@ -30,7 +30,10 @@ export default function AdminLogin() {
 
       // التحقق من صلاحيات Admin
       try {
+        console.log("Checking admin status for UID:", user.uid);
         const adminDoc = await getDoc(doc(db, "admins", user.uid));
+        console.log("Admin doc exists:", adminDoc.exists());
+        console.log("Admin doc data:", adminDoc.data());
 
         if (adminDoc.exists()) {
           // تحديث الحالة
@@ -48,6 +51,7 @@ export default function AdminLogin() {
           }, 500);
         } else {
           // المستخدم ليس Admin
+          console.warn("User is not an admin. UID:", user.uid);
           await auth.signOut();
           setUser(null);
           setIsAdmin(false);
@@ -60,16 +64,37 @@ export default function AdminLogin() {
         }
       } catch (adminError: any) {
         console.error("Error checking admin:", adminError);
-        // حتى لو فشل التحقق، نسمح بتسجيل الدخول (سيتم التحقق في App.tsx)
-        setUser(user);
-        setIsAdmin(false);
-        toast.success("تم تسجيل الدخول، جاري التحقق من الصلاحيات...");
-        setTimeout(() => {
-          navigate("/admin", { replace: true });
-        }, 500);
+        console.error("Admin error code:", adminError.code);
+        console.error("Admin error message:", adminError.message);
+        
+        // إذا كان الخطأ متعلق بالصلاحيات، نعرض رسالة واضحة
+        if (adminError.code === "permission-denied") {
+          toast.error("خطأ في الصلاحيات. يرجى التحقق من إعدادات Firestore Rules");
+          await auth.signOut();
+          setUser(null);
+          setIsAdmin(false);
+        } else {
+          // حتى لو فشل التحقق، نسمح بتسجيل الدخول (سيتم التحقق في App.tsx)
+          setUser(user);
+          setIsAdmin(false);
+          toast.success("تم تسجيل الدخول، جاري التحقق من الصلاحيات...");
+          setTimeout(() => {
+            navigate("/admin", { replace: true });
+          }, 500);
+        }
       }
     } catch (error: any) {
       console.error("Login error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+      
+      // Check if Firebase is properly initialized
+      if (!auth || !db) {
+        toast.error("خطأ في الاتصال بـ Firebase. يرجى التحقق من إعدادات البيئة");
+        console.error("Firebase not initialized properly");
+        return;
+      }
+      
       if (
         error.code === "auth/wrong-password" ||
         error.code === "auth/user-not-found"
@@ -79,8 +104,12 @@ export default function AdminLogin() {
         toast.error("البريد الإلكتروني غير صحيح");
       } else if (error.code === "auth/too-many-requests") {
         toast.error("تم تجاوز عدد المحاولات المسموح بها. يرجى المحاولة لاحقاً");
+      } else if (error.code === "auth/network-request-failed") {
+        toast.error("خطأ في الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت");
+      } else if (error.code === "permission-denied" || error.message?.includes("permission")) {
+        toast.error("خطأ في الصلاحيات. يرجى التحقق من إعدادات Firestore");
       } else {
-        toast.error(`حدث خطأ: ${error.message || "خطأ غير معروف"}`);
+        toast.error(`حدث خطأ: ${error.message || error.code || "خطأ غير معروف"}`);
       }
     } finally {
       setLoading(false);
