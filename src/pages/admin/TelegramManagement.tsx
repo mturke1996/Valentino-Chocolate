@@ -374,7 +374,7 @@ export default function TelegramManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
       </div>
     );
   }
@@ -397,8 +397,8 @@ export default function TelegramManagement() {
             disabled={saving}
             className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50"
             style={{
-              backgroundColor: "var(--md-sys-color-primary)",
-              color: "var(--md-sys-color-on-primary)",
+              backgroundColor: "#3b82f6",
+              color: "#ffffff",
               borderRadius: "var(--md-sys-shape-corner-extra-large)",
               boxShadow: saving ? "none" : "var(--md-sys-elevation-1)",
             }}
@@ -813,7 +813,7 @@ export default function TelegramManagement() {
                       setNewChatForm({ ...newChatForm, chatId: e.target.value })
                     }
                     placeholder="123456789"
-                    className="w-full px-3 py-2.5 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-primary focus:border-2 font-mono text-sm transition-all"
+                    className="w-full px-3 py-2.5 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-blue-500 focus:border-2 font-mono text-sm transition-all"
                     style={{
                       borderRadius: "var(--md-sys-shape-corner-extra-large)",
                     }}
@@ -833,7 +833,7 @@ export default function TelegramManagement() {
                       setNewChatForm({ ...newChatForm, name: e.target.value })
                     }
                     placeholder="مثال: إدارة الطلبات"
-                    className="w-full px-3 py-2.5 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-primary focus:border-2 text-sm transition-all"
+                    className="w-full px-3 py-2.5 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-blue-500 focus:border-2 text-sm transition-all"
                     style={{
                       borderRadius: "var(--md-sys-shape-corner-extra-large)",
                     }}
@@ -870,7 +870,7 @@ export default function TelegramManagement() {
                         className="w-11 h-6 rounded-full peer peer-focus:outline-none transition-colors"
                         style={{
                           backgroundColor: newChatForm.enabled
-                            ? "var(--md-sys-color-primary)"
+                            ? "#3b82f6"
                             : "var(--md-sys-color-surface-variant)",
                         }}
                       >
@@ -914,7 +914,7 @@ export default function TelegramManagement() {
                                 },
                               })
                             }
-                            className="w-4 h-4 rounded border-outline text-primary focus:ring-primary cursor-pointer"
+                            className="w-4 h-4 rounded border-outline text-blue-600 focus:ring-blue-500 cursor-pointer"
                           />
                           <span className="text-sm text-on-surface flex-1">
                             {key === "orders" && "استلام إشعارات الطلبات"}
@@ -939,7 +939,7 @@ export default function TelegramManagement() {
                       className="px-4 py-2 rounded-full text-sm font-medium transition-all"
                       style={{
                         borderRadius: "var(--md-sys-shape-corner-extra-large)",
-                        color: "var(--md-sys-color-primary)",
+                        color: "#3b82f6",
                       }}
                     >
                       إلغاء
@@ -950,8 +950,8 @@ export default function TelegramManagement() {
                       type="submit"
                       className="px-4 py-2 rounded-full text-sm font-medium transition-all"
                       style={{
-                        backgroundColor: "var(--md-sys-color-primary)",
-                        color: "var(--md-sys-color-on-primary)",
+                        backgroundColor: "#3b82f6",
+                        color: "#ffffff",
                         borderRadius: "var(--md-sys-shape-corner-extra-large)",
                         boxShadow: "var(--md-sys-elevation-1)",
                       }}

@@ -108,10 +108,9 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <div 
-                      className="w-12 h-12 rounded-full flex items-center justify-center"
+                      className="w-12 h-12 rounded-full flex items-center justify-center bg-blue-100"
                       style={{
-                        backgroundColor: 'var(--md-sys-color-primary-container)',
-                        color: 'var(--md-sys-color-on-primary-container)'
+                        color: '#1e40af'
                       }}
                     >
                       <span className="material-symbols-rounded text-2xl">
@@ -152,7 +151,7 @@ export default function AdminDashboard() {
                         }
                         className={`group flex items-center gap-3 px-4 py-3 rounded-full transition-all relative ${
                           isActive
-                            ? "bg-primary-container text-on-primary-container"
+                            ? "bg-blue-100 text-blue-700"
                             : "text-on-surface-variant hover:bg-surface-variant"
                         }`}
                         style={{
@@ -163,10 +162,7 @@ export default function AdminDashboard() {
                         {isActive && (
                           <motion.div
                             layoutId="activeNavItem"
-                            className="absolute inset-0 rounded-full"
-                            style={{
-                              backgroundColor: 'var(--md-sys-color-primary-container)'
-                            }}
+                            className="absolute inset-0 rounded-full bg-blue-100"
                             transition={{ 
                               type: "spring", 
                               bounce: 0.15, 
@@ -177,7 +173,7 @@ export default function AdminDashboard() {
                         <span 
                           className="material-symbols-rounded text-xl relative z-10"
                           style={{
-                            color: isActive ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)'
+                            color: isActive ? '#1e40af' : 'var(--md-sys-color-on-surface-variant)'
                           }}
                         >
                           {item.path === '/admin' ? 'dashboard' :
@@ -191,7 +187,7 @@ export default function AdminDashboard() {
                         </span>
                         <span 
                           className={`md-typescale-label-large relative z-10 font-medium ${
-                            isActive ? "text-on-primary-container" : ""
+                            isActive ? "text-blue-700" : ""
                           }`}
                         >
                           {item.label}
@@ -284,10 +280,9 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div 
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                    className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100"
                     style={{
-                      backgroundColor: 'var(--md-sys-color-primary-container)',
-                      color: 'var(--md-sys-color-on-primary-container)'
+                      color: '#1e40af'
                     }}
                   >
                     <span className="material-symbols-rounded text-xl">person</span>

@@ -187,7 +187,7 @@ export default function SettingsManagement() {
               value={settings.addressAr || ""}
               onChange={handleChange}
               rows={2}
-              className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-primary focus:border-2"
+              className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-blue-500 focus:border-2"
             />
           </div>
 
@@ -202,7 +202,7 @@ export default function SettingsManagement() {
               onChange={handleChange}
               min="0"
               step="0.01"
-              className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-primary focus:border-2"
+              className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-blue-500 focus:border-2"
             />
           </div>
         </motion.div>

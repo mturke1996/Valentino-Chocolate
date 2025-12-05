@@ -175,7 +175,7 @@ export default function CategoriesManagement() {
           placeholder="ابحث عن فئة..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pr-12 pl-4 py-3 bg-surface border border-outline-variant rounded-full md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2 transition-all"
+          className="w-full pr-12 pl-4 py-3 bg-surface border border-outline-variant rounded-full md-typescale-body-medium text-on-surface focus:outline-none focus:border-blue-500 focus:border-2 transition-all"
           style={{ borderRadius: "var(--md-sys-shape-corner-extra-large)" }}
         />
       </div>
@@ -309,7 +309,7 @@ export default function CategoriesManagement() {
                     onChange={(e) =>
                       setFormData({ ...formData, nameAr: e.target.value })
                     }
-                    className="w-full px-4 py-3 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-primary focus:border-2 transition-all"
+                    className="w-full px-4 py-3 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-blue-500 focus:border-2 transition-all"
                     placeholder="مثال: شوكولاتة داكنة"
                     style={{
                       borderRadius: "var(--md-sys-shape-corner-extra-large)",
@@ -327,7 +327,7 @@ export default function CategoriesManagement() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="w-full px-4 py-3 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-primary focus:border-2 transition-all"
+                    className="w-full px-4 py-3 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-blue-500 focus:border-2 transition-all"
                     placeholder="Example: Dark Chocolate"
                     style={{
                       borderRadius: "var(--md-sys-shape-corner-extra-large)",
@@ -349,7 +349,7 @@ export default function CategoriesManagement() {
                         order: parseInt(e.target.value) || 0,
                       })
                     }
-                    className="w-full px-4 py-3 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-primary focus:border-2 transition-all"
+                    className="w-full px-4 py-3 bg-surface border border-outline-variant rounded-full focus:outline-none focus:border-blue-500 focus:border-2 transition-all"
                     style={{
                       borderRadius: "var(--md-sys-shape-corner-extra-large)",
                     }}

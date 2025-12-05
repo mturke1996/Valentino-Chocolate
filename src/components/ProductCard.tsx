@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { ShoppingCart, Heart, Eye } from "lucide-react";
+import { ShoppingCart, Heart, Eye, Star } from "lucide-react";
 import { Product } from "../types";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
@@ -22,34 +22,67 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [localRating, setLocalRating] = useState<number | null>(
     product.rating ?? null
   );
+  const [reviewCount, setReviewCount] = useState<number>(product.reviewCount ?? 0);
 
   useEffect(() => {
     let mounted = true;
     const fetchRating = async () => {
       try {
-        const q = query(
-          collection(db, "reviews"),
-          where("productId", "==", product.id),
-          where("verified", "==", true)
-        );
-        const snap = await getDocs(q);
-        const data = snap.docs.map((d) => d.data());
-        if (!mounted) return;
-        if (data.length === 0) return;
-        const ratings = data.map((r: any) => r.rating || 0);
-        const avg = ratings.reduce((s, v) => s + v, 0) / ratings.length;
-        setLocalRating(avg);
+        // Try with index first
+        try {
+          const q = query(
+            collection(db, "reviews"),
+            where("productId", "==", product.id),
+            where("verified", "==", true)
+          );
+          const snap = await getDocs(q);
+          const data = snap.docs.map((d) => d.data());
+          if (!mounted) return;
+          if (data.length === 0) {
+            setLocalRating(null);
+            setReviewCount(0);
+            return;
+          }
+          const ratings = data.map((r: any) => r.rating || 0);
+          const avg = ratings.reduce((s, v) => s + v, 0) / ratings.length;
+          setLocalRating(avg);
+          setReviewCount(data.length);
+        } catch (indexError: any) {
+          // Fallback: fetch all reviews for this product and filter client-side
+          console.log("Index not available, using fallback for reviews");
+          const q = query(
+            collection(db, "reviews"),
+            where("productId", "==", product.id)
+          );
+          const snap = await getDocs(q);
+          const allData = snap.docs.map((d) => d.data());
+          if (!mounted) return;
+          const verifiedData = allData.filter((r: any) => r.verified === true);
+          if (verifiedData.length === 0) {
+            setLocalRating(null);
+            setReviewCount(0);
+            return;
+          }
+          const ratings = verifiedData.map((r: any) => r.rating || 0);
+          const avg = ratings.reduce((s, v) => s + v, 0) / ratings.length;
+          setLocalRating(avg);
+          setReviewCount(verifiedData.length);
+        }
       } catch (err) {
-        // ignore
+        console.error("Error fetching reviews:", err);
+        // Keep existing rating if available
+        if (product.rating) {
+          setLocalRating(product.rating);
+        }
       }
     };
 
-    if (localRating === null) fetchRating();
+    fetchRating();
 
     return () => {
       mounted = false;
     };
-  }, [product.id, localRating]);
+  }, [product.id, product.rating]);
 
   return (
     <motion.div
@@ -128,6 +161,34 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Product Info */}
       <div className="p-4 space-y-3">
+        {/* Rating - Show if available */}
+        {localRating !== null && localRating > 0 && (
+          <div className="flex items-center gap-1.5 justify-end">
+            <div className="flex items-center gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-3.5 w-3.5 ${
+                    i < Math.floor(localRating)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : i < localRating
+                      ? "fill-yellow-400/50 text-yellow-400/50"
+                      : "fill-gray-300 text-gray-300"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-xs font-medium text-on-surface-variant">
+              {localRating.toFixed(1)}
+            </span>
+            {reviewCount > 0 && (
+              <span className="text-[10px] text-on-surface-variant/70">
+                ({reviewCount})
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Product Name */}
         <Link to={`/product/${product.id}`}>
           <h3 className="md-typescale-title-medium text-on-surface hover:text-primary transition-colors line-clamp-2">

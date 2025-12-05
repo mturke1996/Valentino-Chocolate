@@ -51,6 +51,8 @@ export default function ProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [productRating, setProductRating] = useState<number | null>(null);
+  const [productReviewCount, setProductReviewCount] = useState<number>(0);
   const addToCart = useCartStore((state) => state.addToCart);
 
   useEffect(() => {
@@ -66,6 +68,44 @@ export default function ProductDetailPage() {
             ...productDoc.data(),
           } as Product;
           setProduct(productData);
+          setProductRating(productData.rating ?? null);
+          setProductReviewCount(productData.reviewCount ?? 0);
+
+          // Fetch Reviews to calculate rating
+          try {
+            const reviewsQuery = query(
+              collection(db, "reviews"),
+              where("productId", "==", id),
+              where("verified", "==", true)
+            );
+            const reviewsSnapshot = await getDocs(reviewsQuery);
+            const reviewsData = reviewsSnapshot.docs.map((d) => d.data());
+            if (reviewsData.length > 0) {
+              const ratings = reviewsData.map((r: any) => r.rating || 0);
+              const avg = ratings.reduce((s, v) => s + v, 0) / ratings.length;
+              setProductRating(avg);
+              setProductReviewCount(reviewsData.length);
+            }
+          } catch (reviewError: any) {
+            // Fallback: fetch all reviews and filter client-side
+            try {
+              const reviewsQuery = query(
+                collection(db, "reviews"),
+                where("productId", "==", id)
+              );
+              const reviewsSnapshot = await getDocs(reviewsQuery);
+              const allReviews = reviewsSnapshot.docs.map((d) => d.data());
+              const verifiedReviews = allReviews.filter((r: any) => r.verified === true);
+              if (verifiedReviews.length > 0) {
+                const ratings = verifiedReviews.map((r: any) => r.rating || 0);
+                const avg = ratings.reduce((s, v) => s + v, 0) / ratings.length;
+                setProductRating(avg);
+                setProductReviewCount(verifiedReviews.length);
+              }
+            } catch (err) {
+              console.error("Error fetching reviews:", err);
+            }
+          }
 
           // Fetch Related Products
           const relatedQuery = query(
@@ -275,24 +315,26 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Rating */}
-            {product.rating && product.rating > 0 && (
+            {(productRating !== null && productRating > 0) && (
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
                       className={`h-5 w-5 ${
-                        i < Math.floor(product.rating!)
-                          ? "fill-yellow-500 text-yellow-500"
-                          : "text-outline-variant"
+                        i < Math.floor(productRating)
+                          ? "fill-yellow-400 text-yellow-400"
+                          : i < productRating
+                          ? "fill-yellow-400/50 text-yellow-400/50"
+                          : "fill-gray-300 text-gray-300"
                       }`}
                     />
                   ))}
                 </div>
                 <span className="md-typescale-body-medium text-on-surface-variant">
-                  {product.rating.toFixed(1)}
-                  {product.reviewCount && product.reviewCount > 0 && (
-                    <> ({product.reviewCount} تقييم)</>
+                  {productRating.toFixed(1)}
+                  {productReviewCount > 0 && (
+                    <> ({productReviewCount} {productReviewCount === 1 ? 'تقييم' : 'تقييم'})</>
                   )}
                 </span>
               </div>

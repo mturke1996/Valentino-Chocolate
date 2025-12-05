@@ -327,7 +327,7 @@ export default function MessagesManagement() {
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               rows={6}
-              className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-primary focus:border-2 mb-4"
+              className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-blue-500 focus:border-2 mb-4"
               placeholder="اكتب ردك هنا..."
             />
             <div className="flex justify-end gap-4">

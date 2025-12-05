@@ -132,7 +132,7 @@ export default function ReviewsManagement() {
           placeholder="ابحث عن تقييم..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pr-12 pl-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-primary focus:border-2"
+          className="w-full pr-12 pl-4 py-3 bg-surface border border-outline rounded-m3 md-typescale-body-medium text-on-surface focus:outline-none focus:border-blue-500 focus:border-2"
         />
       </div>
 
@@ -241,7 +241,7 @@ export default function ReviewsManagement() {
                     onClick={() => toggleVerified(review.id, review.verified)}
                     className={`p-2 rounded-m3 transition-colors ${
                       review.verified
-                        ? "bg-primary-container text-primary"
+                        ? "bg-blue-100 text-blue-700"
                         : "bg-surface-variant text-on-surface-variant hover:bg-outline-variant"
                     }`}
                   >
@@ -287,7 +287,7 @@ export default function ReviewsManagement() {
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               rows={6}
-              className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-primary focus:border-2 mb-4"
+              className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-blue-500 focus:border-2 mb-4"
               placeholder="اكتب ردك هنا..."
             />
             <div className="flex justify-end gap-4">

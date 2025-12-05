@@ -324,7 +324,7 @@ export default function ItemsManagement() {
                 <span
                   className={`px-2 py-1 rounded-m3-sm md-typescale-label-small ${
                     product.inStock
-                      ? "bg-primary-container text-primary"
+                      ? "bg-blue-100 text-blue-700"
                       : "bg-red-100 text-red-800"
                   }`}
                 >
@@ -482,7 +482,7 @@ export default function ItemsManagement() {
                       onChange={(e) =>
                         setFormData({ ...formData, weight: e.target.value })
                       }
-                      className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-primary focus:border-2"
+                      className="w-full px-4 py-2 bg-surface border border-outline rounded-m3 focus:outline-none focus:border-blue-500 focus:border-2"
                     />
                   </div>
                 </div>

@@ -50,7 +50,7 @@ export const getOrderStatusColor = (status: string): string => {
     confirmed: "bg-blue-100 text-blue-800",
     preparing: "bg-purple-100 text-purple-800",
     "out-for-delivery": "bg-indigo-100 text-indigo-800",
-    delivered: "bg-primary-container text-primary",
+    delivered: "bg-blue-100 text-blue-800",
     cancelled: "bg-red-100 text-red-800",
   };
   return colorMap[status] || "bg-gray-100 text-gray-800";

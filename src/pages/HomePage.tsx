@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
+import { Star } from "lucide-react";
 import {
   collection,
   query,
@@ -69,21 +70,38 @@ export default function HomePage() {
         })) as Category[];
         setCategories(categoriesData);
 
-        // Fetch Reviews (without verified filter to avoid index requirement)
-        const reviewsQuery = query(
-          collection(db, "reviews"),
-          orderBy("createdAt", "desc"),
-          limit(6)
-        );
-        const reviewsSnapshot = await getDocs(reviewsQuery);
-        const allReviews = reviewsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Review[];
-        const verifiedReviews = allReviews
-          .filter((review) => review.verified === true)
-          .slice(0, 6);
-        setReviews(verifiedReviews);
+        // Fetch Reviews - Try with verified filter first, fallback to all
+        try {
+          const reviewsQuery = query(
+            collection(db, "reviews"),
+            where("verified", "==", true),
+            orderBy("createdAt", "desc"),
+            limit(6)
+          );
+          const reviewsSnapshot = await getDocs(reviewsQuery);
+          const reviewsData = reviewsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Review[];
+          setReviews(reviewsData);
+        } catch (error) {
+          // Fallback: fetch all reviews and filter client-side
+          console.log("Using fallback for reviews fetch");
+          const reviewsQuery = query(
+            collection(db, "reviews"),
+            orderBy("createdAt", "desc"),
+            limit(20)
+          );
+          const reviewsSnapshot = await getDocs(reviewsQuery);
+          const allReviews = reviewsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Review[];
+          const verifiedReviews = allReviews
+            .filter((review) => review.verified === true)
+            .slice(0, 6);
+          setReviews(verifiedReviews);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -515,13 +533,13 @@ export default function HomePage() {
                     setSelectedProductForReview(featuredProducts[0]);
                     setShowReviewModal(true);
                   }}
-                  className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-primary text-on-primary rounded-full font-medium shadow-lg hover:shadow-xl transition-all text-sm sm:text-base"
+                  className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all text-sm sm:text-base transform hover:scale-105 active:scale-95"
                   style={{
                     borderRadius: "var(--md-sys-shape-corner-extra-large)",
-                    minHeight: '44px'
+                    minHeight: '48px'
                   }}
                 >
-                  <span className="material-symbols-rounded text-lg sm:text-xl">rate_review</span>
+                  <span className="material-symbols-rounded text-xl sm:text-2xl">rate_review</span>
                   <span>أضف تقييمك</span>
                 </motion.button>
               </MaterialRipple>
@@ -529,7 +547,7 @@ export default function HomePage() {
           </motion.div>
 
           {reviews.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {reviews.map((review, index) => (
                 <motion.div
                   key={index}
@@ -537,31 +555,43 @@ export default function HomePage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  whileHover={{ y: -5 }}
-                  className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all"
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all border border-outline-variant/20"
                   style={{ fontFamily: "Cairo, Tajawal, sans-serif" }}
                 >
-                  <div className="flex items-center mb-6">
-                    <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl">
-                      {review.userName.charAt(0)}
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-primary to-primary-container rounded-full flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg flex-shrink-0">
+                      {review.userName.charAt(0).toUpperCase()}
                     </div>
-                    <div className="mr-4 flex-1">
-                      <h3 className="font-bold text-xl text-primary mb-1">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg sm:text-xl text-primary mb-1 truncate">
                         {review.userName}
                       </h3>
-                      <p className="text-sm text-on-surface-variant">
+                      <p className="text-xs sm:text-sm text-on-surface-variant">
                         {review.createdAt && formatDateTime(review.createdAt)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex mb-4">
-                    {[...Array(review.rating)].map((_, i) => (
-                      <span key={i} className="text-yellow-500 text-2xl">
-                        ★
-                      </span>
-                    ))}
+                  
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 sm:h-5 sm:w-5 transition-colors ${
+                            i < review.rating
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "fill-gray-300 text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm sm:text-base font-semibold text-on-surface">
+                      {review.rating.toFixed(1)}
+                    </span>
                   </div>
-                  <p className="text-on-surface-variant leading-relaxed text-lg mb-6">
+                  
+                  <p className="text-on-surface-variant leading-relaxed text-base sm:text-lg mb-6 line-clamp-4">
                     "{review.comment}"
                   </p>
 
