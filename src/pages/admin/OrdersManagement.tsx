@@ -162,10 +162,10 @@ export default function OrdersManagement() {
   }
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-3 pb-4">
       {/* Header */}
       <div className="flex flex-col gap-1 px-2">
-        <h2 className="text-base sm:text-lg font-bold text-on-background">
+        <h2 className="text-sm sm:text-base font-bold text-on-background">
           إدارة الطلبات
         </h2>
         <p className="text-xs text-on-surface-variant">
@@ -174,9 +174,9 @@ export default function OrdersManagement() {
       </div>
 
       {/* Filters */}
-      <div className="space-y-3 px-2">
+      <div className="space-y-2 px-2">
         <div className="relative">
-          <span className="material-symbols-rounded absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base pointer-events-none">
+          <span className="material-symbols-rounded absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">
             search
           </span>
           <input
@@ -184,11 +184,11 @@ export default function OrdersManagement() {
             placeholder="ابحث برقم الطلب أو اسم العميل..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pr-10 pl-3 py-2 bg-surface border border-outline-variant rounded-full text-sm focus:outline-none focus:border-primary focus:border-2 transition-all"
+            className="w-full pr-8 pl-2 py-1.5 bg-surface border border-outline-variant rounded-full text-xs sm:text-sm focus:outline-none focus:border-primary focus:border-2 transition-all"
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           {statusOptions.map((option) => {
             const Icon = option.icon;
             const isActive = statusFilter === option.value;
@@ -196,13 +196,13 @@ export default function OrdersManagement() {
               <MaterialRipple key={option.value}>
                 <button
                   onClick={() => setStatusFilter(option.value)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-full whitespace-nowrap text-sm flex-shrink-0 ${
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-full whitespace-nowrap text-xs flex-shrink-0 ${
                     isActive
-                      ? "bg-surface-variant text-on-surface font-medium"
+                      ? "bg-primary-container text-on-primary-container font-medium"
                       : "bg-surface-variant text-on-surface-variant"
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">{option.label}</span>
                   <span className="sm:hidden">{option.shortLabel}</span>
                 </button>
@@ -213,13 +213,13 @@ export default function OrdersManagement() {
       </div>
 
       {/* Orders List - mobile-first cards */}
-      <div className="space-y-3 px-2">
+      <div className="space-y-2 px-2">
         {filteredOrders.length === 0 ? (
-          <div className="text-center py-12">
-            <span className="material-symbols-rounded text-5xl text-on-surface-variant mb-2">
+          <div className="text-center py-8">
+            <span className="material-symbols-rounded text-4xl text-on-surface-variant mb-2">
               inventory_2
             </span>
-            <p className="text-sm text-on-surface-variant">لا توجد طلبات</p>
+            <p className="text-xs text-on-surface-variant">لا توجد طلبات</p>
           </div>
         ) : (
           filteredOrders.map((order) => (
@@ -229,14 +229,14 @@ export default function OrdersManagement() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-surface border border-outline-variant rounded-lg overflow-hidden"
             >
-              <div className="p-2 flex items-center justify-between gap-2">
+              <div className="p-2 sm:p-3 flex items-center justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-on-surface truncate">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h3 className="text-xs sm:text-sm font-semibold text-on-surface truncate">
                       #{order.orderNumber}
                     </h3>
                     <span
-                      className={`px-1.5 py-0.5 text-xs font-medium ${getOrderStatusColor(
+                      className={`px-1.5 py-0.5 text-[10px] sm:text-xs font-medium ${getOrderStatusColor(
                         order.status
                       )}`}
                       style={{ borderRadius: 9999 }}
@@ -244,13 +244,13 @@ export default function OrdersManagement() {
                       {getOrderStatusText(order.status)}
                     </span>
                   </div>
-                  <p className="text-xs text-on-surface-variant truncate">
+                  <p className="text-[10px] sm:text-xs text-on-surface-variant truncate mt-0.5">
                     {formatDateTime(order.createdAt)}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-on-surface">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs sm:text-sm font-semibold text-on-surface">
                     {formatPrice(order.total)}
                   </p>
                   <button
@@ -259,14 +259,14 @@ export default function OrdersManagement() {
                         expandedOrderId === order.id ? null : order.id
                       )
                     }
-                    className="p-2 rounded-md bg-surface-variant hover:bg-surface transition-colors"
+                    className="p-1.5 rounded-md bg-surface-variant hover:bg-outline-variant transition-colors"
                     aria-expanded={expandedOrderId === order.id}
                     aria-controls={`order-${order.id}-details`}
                   >
                     {expandedOrderId === order.id ? (
-                      <ChevronUp className="h-4 w-4" />
+                      <ChevronUp className="h-3.5 w-3.5" />
                     ) : (
-                      <ChevronDown className="h-4 w-4" />
+                      <ChevronDown className="h-3.5 w-3.5" />
                     )}
                   </button>
                 </div>
@@ -276,67 +276,67 @@ export default function OrdersManagement() {
                 id={`order-${order.id}-details`}
                 className={`${
                   expandedOrderId === order.id ? "block" : "hidden"
-                } px-3 pb-3`}
+                } px-2 sm:px-3 pb-2 sm:pb-3`}
               >
                 <div className="bg-surface-variant p-2 rounded-md mb-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-rounded text-sm text-on-surface-variant">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-rounded text-xs text-on-surface-variant">
                         person
                       </span>
-                      <span className="text-sm text-on-surface truncate">
+                      <span className="text-xs sm:text-sm text-on-surface truncate flex-1">
                         {order.customerName}
                       </span>
                     </div>
                     <a
                       href={`tel:${order.customerPhone}`}
-                      className="text-sm text-on-surface truncate"
+                      className="text-xs sm:text-sm text-primary truncate flex items-center gap-1"
                     >
+                      <span className="material-symbols-rounded text-xs">phone</span>
                       {order.customerPhone}
                     </a>
                   </div>
 
                   {order.deliveryType === "delivery" ? (
-                    <p className="text-sm text-on-surface-variant mt-2 line-clamp-2">
+                    <p className="text-xs text-on-surface-variant mt-1.5 line-clamp-2">
                       <span className="font-medium">العنوان: </span>
                       {order.customerAddress}
                     </p>
                   ) : (
-                    <p className="text-sm text-on-surface-variant mt-2">
-                      <span className="font-medium">الاستلام: </span>استلام من
-                      المتجر
+                    <p className="text-xs text-on-surface-variant mt-1.5">
+                      <span className="font-medium">الاستلام: </span>استلام من المتجر
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-2 mb-2">
+                <div className="space-y-1.5 mb-2">
                   {order.items &&
                     order.items.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-2 p-2 bg-surface rounded-md"
+                        className="flex items-center gap-1.5 p-1.5 bg-surface rounded-md"
                       >
                         <img
                           src={item.productImage}
                           alt={item.productNameAr}
-                          className="w-8 h-8 object-cover rounded-md flex-shrink-0"
+                          className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-md flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-on-surface truncate">
+                          <p className="text-xs sm:text-sm text-on-surface truncate">
                             {item.productNameAr}
                           </p>
-                          <p className="text-xs text-on-surface-variant">
+                          <p className="text-[10px] sm:text-xs text-on-surface-variant">
                             {item.quantity} × {formatPrice(item.price)}
                           </p>
                         </div>
-                        <div className="text-sm text-on-surface font-medium">
+                        <div className="text-xs sm:text-sm text-on-surface font-medium">
                           {formatPrice(item.subtotal)}
                         </div>
                       </div>
                     ))}
                 </div>
 
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-1.5 items-center">
                   <select
                     value={selectedStatuses[order.id] || order.status}
                     onChange={(e) =>
@@ -345,7 +345,7 @@ export default function OrdersManagement() {
                         [order.id]: e.target.value,
                       }))
                     }
-                    className="flex-1 px-3 py-2 rounded-lg bg-surface-variant text-sm focus:outline-none"
+                    className="flex-1 px-2 py-1.5 rounded-lg bg-surface-variant text-xs sm:text-sm focus:outline-none border border-outline-variant"
                   >
                     {statusOptions
                       .filter((opt) => opt.value !== "all")
@@ -365,7 +365,7 @@ export default function OrdersManagement() {
                             order.status
                         )
                       }
-                      className="px-3 py-2 rounded-lg bg-surface-variant text-sm font-medium"
+                      className="px-2.5 py-1.5 rounded-lg bg-primary text-on-primary text-xs sm:text-sm font-medium whitespace-nowrap"
                     >
                       تحديث
                     </button>
@@ -373,11 +373,11 @@ export default function OrdersManagement() {
                 </div>
 
                 {order.notes && (
-                  <div className="p-2 bg-surface-variant rounded-lg mt-2">
-                    <span className="text-sm text-on-surface-variant block mb-1">
+                  <div className="p-1.5 bg-surface-variant rounded-lg mt-2">
+                    <span className="text-xs text-on-surface-variant block mb-1">
                       ملاحظات:
                     </span>
-                    <p className="text-sm text-on-surface">{order.notes}</p>
+                    <p className="text-xs sm:text-sm text-on-surface">{order.notes}</p>
                   </div>
                 )}
               </div>
