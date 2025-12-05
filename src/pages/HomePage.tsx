@@ -70,37 +70,53 @@ export default function HomePage() {
         })) as Category[];
         setCategories(categoriesData);
 
-        // Fetch Reviews - Try with verified filter first, fallback to all
+        // Fetch Reviews - Fetch all and sort client-side to avoid index requirement
         try {
-          const reviewsQuery = query(
-            collection(db, "reviews"),
-            where("verified", "==", true),
-            orderBy("createdAt", "desc"),
-            limit(6)
-          );
-          const reviewsSnapshot = await getDocs(reviewsQuery);
-          const reviewsData = reviewsSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Review[];
-          setReviews(reviewsData);
-        } catch (error) {
-          // Fallback: fetch all reviews and filter client-side
-          console.log("Using fallback for reviews fetch");
-          const reviewsQuery = query(
-            collection(db, "reviews"),
-            orderBy("createdAt", "desc"),
-            limit(20)
-          );
+          console.log("Fetching reviews...");
+          const reviewsQuery = query(collection(db, "reviews"));
           const reviewsSnapshot = await getDocs(reviewsQuery);
           const allReviews = reviewsSnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           })) as Review[];
-          const verifiedReviews = allReviews
-            .filter((review) => review.verified === true)
+          
+          console.log(`Total reviews fetched: ${allReviews.length}`);
+          
+          // Sort by createdAt client-side (newest first)
+          const sortedReviews = allReviews.sort((a, b) => {
+            try {
+              const aTime = a.createdAt?.toDate?.()?.getTime() || 
+                           (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0) ||
+                           (typeof a.createdAt === 'number' ? a.createdAt : 0);
+              const bTime = b.createdAt?.toDate?.()?.getTime() || 
+                           (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0) ||
+                           (typeof b.createdAt === 'number' ? b.createdAt : 0);
+              return bTime - aTime;
+            } catch (e) {
+              return 0;
+            }
+          });
+          
+          // Filter verified reviews and take first 6
+          const verifiedReviews = sortedReviews
+            .filter((review) => {
+              // Check if verified is explicitly true
+              return review.verified === true;
+            })
             .slice(0, 6);
-          setReviews(verifiedReviews);
+          
+          console.log(`Verified reviews: ${verifiedReviews.length}`, verifiedReviews);
+          
+          if (verifiedReviews.length > 0) {
+            setReviews(verifiedReviews);
+          } else {
+            console.warn("No verified reviews found. Showing all reviews instead.");
+            // If no verified reviews, show all reviews (first 6)
+            setReviews(sortedReviews.slice(0, 6));
+          }
+        } catch (error: any) {
+          console.error("Error fetching reviews:", error);
+          setReviews([]);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -501,8 +517,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Reviews Section */}
-      <section className="py-24 bg-primary-container/10">
+      {/* Reviews Section - Always show */}
+      <section className="py-24 bg-primary-container/10" id="reviews">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -546,7 +562,7 @@ export default function HomePage() {
             )}
           </motion.div>
 
-          {reviews.length > 0 ? (
+          {reviews && reviews.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {reviews.map((review, index) => (
                 <motion.div
@@ -587,12 +603,12 @@ export default function HomePage() {
                       ))}
                     </div>
                     <span className="text-sm sm:text-base font-semibold text-on-surface">
-                      {review.rating.toFixed(1)}
+                      {review.rating ? review.rating.toFixed(1) : "0.0"}
                     </span>
                   </div>
                   
                   <p className="text-on-surface-variant leading-relaxed text-base sm:text-lg mb-6 line-clamp-4">
-                    "{review.comment}"
+                    {review.comment}
                   </p>
 
                   {/* Reply from Store */}
@@ -768,23 +784,39 @@ export default function HomePage() {
             setSelectedProductForReview(null);
           }}
           onSuccess={() => {
-            // Refresh reviews if needed
+            // Refresh reviews after adding new one
             const fetchReviews = async () => {
               try {
-                const reviewsQuery = query(
-                  collection(db, "reviews"),
-                  orderBy("createdAt", "desc"),
-                  limit(6)
-                );
+                const reviewsQuery = query(collection(db, "reviews"));
                 const reviewsSnapshot = await getDocs(reviewsQuery);
                 const allReviews = reviewsSnapshot.docs.map((doc) => ({
                   id: doc.id,
                   ...doc.data(),
                 })) as Review[];
-                const verifiedReviews = allReviews
+                
+                const sortedReviews = allReviews.sort((a, b) => {
+                  try {
+                    const aTime = a.createdAt?.toDate?.()?.getTime() || 
+                                 (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0) ||
+                                 (typeof a.createdAt === 'number' ? a.createdAt : 0);
+                    const bTime = b.createdAt?.toDate?.()?.getTime() || 
+                                 (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0) ||
+                                 (typeof b.createdAt === 'number' ? b.createdAt : 0);
+                    return bTime - aTime;
+                  } catch (e) {
+                    return 0;
+                  }
+                });
+                
+                const verifiedReviews = sortedReviews
                   .filter((review) => review.verified === true)
                   .slice(0, 6);
-                setReviews(verifiedReviews);
+                
+                if (verifiedReviews.length > 0) {
+                  setReviews(verifiedReviews);
+                } else {
+                  setReviews(sortedReviews.slice(0, 6));
+                }
               } catch (error) {
                 console.error("Error fetching reviews:", error);
               }
