@@ -37,6 +37,8 @@ const getTelegramSettings = async () => {
 
 const getEnabledChats = async (permission?: 'orders' | 'orderStatus' | 'messages' | 'reviews' | 'contact'): Promise<TelegramChat[]> => {
   try {
+    console.log(`[Telegram] Fetching chats with permission: ${permission || 'any'}`);
+    
     const chatsQuery = query(collection(db, 'telegramChats'));
     const chatsSnapshot = await getDocs(chatsQuery);
     const allChats = chatsSnapshot.docs.map((doc) => ({
@@ -44,27 +46,54 @@ const getEnabledChats = async (permission?: 'orders' | 'orderStatus' | 'messages
       ...doc.data(),
     })) as TelegramChat[];
 
-    console.log(`Total chats found: ${allChats.length}`);
+    console.log(`[Telegram] Total chats found in database: ${allChats.length}`);
+    if (allChats.length > 0) {
+      console.log(`[Telegram] Chat details:`, allChats.map(c => ({
+        id: c.id,
+        chatId: c.chatId,
+        name: c.name,
+        enabled: c.enabled,
+        permissions: c.permissions
+      })));
+    }
 
     // Filter enabled chats
     let enabledChats = allChats.filter((chat) => chat.enabled);
-    console.log(`Enabled chats: ${enabledChats.length}`);
+    console.log(`[Telegram] Enabled chats (before permission filter): ${enabledChats.length}`);
 
     // Filter by permission if specified
     if (permission) {
-      enabledChats = enabledChats.filter((chat) => chat.permissions?.[permission] === true);
-      console.log(`Chats with permission '${permission}': ${enabledChats.length}`);
+      const beforeFilter = enabledChats.length;
+      enabledChats = enabledChats.filter((chat) => {
+        const hasPermission = chat.permissions?.[permission] === true;
+        if (!hasPermission && chat.enabled) {
+          console.log(`[Telegram] Chat ${chat.chatId} (${chat.name || 'unnamed'}) is enabled but missing permission '${permission}'`, {
+            chatId: chat.chatId,
+            permissions: chat.permissions
+          });
+        }
+        return hasPermission;
+      });
+      console.log(`[Telegram] Chats with permission '${permission}': ${enabledChats.length} (filtered from ${beforeFilter})`);
     }
 
     return enabledChats;
   } catch (error) {
-    console.error('Error fetching Telegram chats:', error);
+    console.error('[Telegram] Error fetching Telegram chats:', error);
+    if (error instanceof Error) {
+      console.error('[Telegram] Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+    }
     return [];
   }
 };
 
 const sendTelegramMessage = async (message: string, chatId: string, token: string): Promise<boolean> => {
   try {
+    console.log(`[Telegram] Sending message to chat ${chatId}...`);
+    
     const response = await fetch(
       `https://api.telegram.org/bot${token}/sendMessage`,
       {
@@ -81,53 +110,114 @@ const sendTelegramMessage = async (message: string, chatId: string, token: strin
     );
 
     const data = await response.json();
-    if (!response.ok) {
-      console.error('Telegram API error:', data);
+    if (!response.ok || !data.ok) {
+      console.error(`[Telegram] API error for chat ${chatId}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorCode: data.error_code,
+        description: data.description,
+        fullResponse: data
+      });
+      
+      // Common error messages
+      if (data.error_code === 400) {
+        console.error(`[Telegram] Bad request - check chat ID format: ${chatId}`);
+      } else if (data.error_code === 401) {
+        console.error(`[Telegram] Unauthorized - check bot token`);
+      } else if (data.error_code === 403) {
+        console.error(`[Telegram] Forbidden - bot may have been blocked by user or chat ${chatId}`);
+      } else if (data.error_code === 404) {
+        console.error(`[Telegram] Chat not found - invalid chat ID: ${chatId}`);
+      }
+      
       return false;
     }
+    
+    console.log(`[Telegram] Message sent successfully to chat ${chatId}`);
     return true;
   } catch (error) {
-    console.error('Error sending Telegram message:', error);
+    console.error(`[Telegram] Network error sending message to chat ${chatId}:`, error);
+    if (error instanceof Error) {
+      console.error(`[Telegram] Error details:`, {
+        message: error.message,
+        stack: error.stack
+      });
+    }
     return false;
   }
 };
 
 const sendToAllChats = async (message: string, permission?: 'orders' | 'orderStatus' | 'messages' | 'reviews' | 'contact'): Promise<boolean> => {
   try {
+    console.log(`[Telegram] Starting sendToAllChats with permission: ${permission}`);
+    
     const settings = await getTelegramSettings();
     
+    console.log(`[Telegram] Settings check:`, {
+      enabled: settings.enabled,
+      hasToken: !!settings.token,
+      tokenLength: settings.token?.length || 0
+    });
+    
     if (!settings.enabled || !settings.token) {
-      console.warn('Telegram notifications disabled or not configured', { enabled: settings.enabled, hasToken: !!settings.token });
+      console.warn('[Telegram] Notifications disabled or not configured', { 
+        enabled: settings.enabled, 
+        hasToken: !!settings.token,
+        reason: !settings.enabled ? 'Telegram is disabled in settings' : 'Bot token is missing'
+      });
       return false;
     }
 
     const chats = await getEnabledChats(permission);
     
+    console.log(`[Telegram] Enabled chats found:`, {
+      total: chats.length,
+      permission: permission,
+      chatIds: chats.map(c => ({ id: c.chatId, name: c.name, enabled: c.enabled, permissions: c.permissions }))
+    });
+    
     if (chats.length === 0) {
-      console.warn(`No enabled chats found for permission: ${permission}`, { totalChats: chats.length });
+      console.warn(`[Telegram] No enabled chats found for permission: ${permission}`, { 
+        permission,
+        suggestion: 'Please check: 1) Are there any chats in the database? 2) Are they enabled? 3) Do they have the required permission?'
+      });
       return false;
     }
 
-    console.log(`Sending Telegram notification to ${chats.length} chat(s) with permission: ${permission}`);
+    console.log(`[Telegram] Sending notification to ${chats.length} chat(s) with permission: ${permission}`);
 
     // Send to all eligible chats
     const results = await Promise.all(
       chats.map(async (chat) => {
+        console.log(`[Telegram] Attempting to send to chat ${chat.chatId} (${chat.name || 'unnamed'})`);
         const result = await sendTelegramMessage(message, chat.chatId, settings.token!);
         if (!result) {
-          console.error(`Failed to send message to chat ${chat.chatId}`);
+          console.error(`[Telegram] Failed to send message to chat ${chat.chatId} (${chat.name || 'unnamed'})`);
+        } else {
+          console.log(`[Telegram] Successfully sent to chat ${chat.chatId} (${chat.name || 'unnamed'})`);
         }
         return result;
       })
     );
 
     const success = results.some((result) => result === true);
-    if (!success) {
-      console.error('Failed to send Telegram notification to any chat');
+    const successCount = results.filter(r => r === true).length;
+    const failCount = results.filter(r => r === false).length;
+    
+    if (success) {
+      console.log(`[Telegram] Notification sent successfully to ${successCount} out of ${results.length} chat(s)`);
+    } else {
+      console.error(`[Telegram] Failed to send notification to any chat (${failCount} failed)`);
     }
     return success;
   } catch (error) {
-    console.error('Error in sendToAllChats:', error);
+    console.error('[Telegram] Error in sendToAllChats:', error);
+    if (error instanceof Error) {
+      console.error('[Telegram] Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+    }
     return false;
   }
 };

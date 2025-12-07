@@ -206,13 +206,17 @@ export default function CheckoutPage() {
       notifyNewOrder(orderForNotification)
         .then((success) => {
           if (success) {
-            console.log("Telegram notification sent successfully");
+            console.log("[Checkout] Telegram notification sent successfully");
+            toast.success("تم إرسال إشعار الطلب إلى Telegram", { duration: 3000 });
           } else {
-            console.warn("Telegram notification failed - check bot configuration");
+            console.warn("[Checkout] Telegram notification failed - check bot configuration");
+            // Don't show error to user as order was created successfully
+            // Admin can check console logs for details
           }
         })
         .catch((err) => {
-          console.error("Telegram notification error:", err);
+          console.error("[Checkout] Telegram notification error:", err);
+          // Don't show error to user as order was created successfully
         });
 
       clearCart();
