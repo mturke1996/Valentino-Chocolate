@@ -29,6 +29,11 @@ export default function CheckoutPage() {
     notes: "",
   });
 
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {

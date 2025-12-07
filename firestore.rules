@@ -64,8 +64,9 @@ service cloud.firestore {
 
     // Telegram Chats Collection
     match /telegramChats/{chatId} {
-      // Allow read for authenticated users (needed for notifications)
-      allow read: if isSignedIn();
+      // Allow public read (needed for notifications when creating orders)
+      // Chat IDs are not sensitive data - they're just configuration
+      allow read: if true;
       // Only admins can write
       allow write: if isAdmin();
     }

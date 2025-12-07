@@ -32,6 +32,7 @@ import MessagesManagement from "./pages/admin/MessagesManagement";
 import SettingsManagement from "./pages/admin/SettingsManagement";
 import TelegramManagement from "./pages/admin/TelegramManagement";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ScrollToTop from "./components/ScrollToTop";
 
 function App() {
   const { setUser, setIsAdmin, setLoading } = useAuthStore();
@@ -97,6 +98,8 @@ function App() {
           },
         }}
       />
+
+      <ScrollToTop />
 
       <Routes>
         {/* Public Routes */}
